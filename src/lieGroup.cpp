@@ -15,24 +15,6 @@ using namespace codac2;
 namespace lieInt
 {
 
-template <unsigned int DimGroup, unsigned int DimMatrix>
-LieBaseMatrix<DimGroup,DimMatrix>::LieBaseMatrix() :
-    value(IntervalMatrix::Identity(DimMatrix,DimMatrix))
-{
-}   
-
-template <unsigned int DimGroup, unsigned int DimMatrix>
-LieBaseMatrix<DimGroup,DimMatrix>::LieBaseMatrix(const IntervalMatrix &M) :
-    value(M)
-{
-    assert_release(M.cols()==DimMatrix && M.rows()==DimMatrix);
-    this->contractor();
-}
-
-template <unsigned int DimGroup, unsigned int DimMatrix>
-void LieBaseMatrix<DimGroup,DimMatrix>::contractor() {
-}
-
 #if 0
 template <unsigned int DimGroup, unsigned int DimMatrix>
 IntervalMatrix LieBaseMatrix<DimGroup,DimMatrix>::representationAlgebra
@@ -52,48 +34,28 @@ Matrix LieBaseMatrix<DimGroup,DimMatrix>::representationAlgebra
 #endif
 
 template <unsigned int DimGroup, unsigned int DimMatrix>
-LieBaseMatrix<DimGroup, DimMatrix> operator*
-	(const LieBaseMatrix<DimGroup,DimMatrix> &A,
-         const LieBaseMatrix<DimGroup,DimMatrix> &B) {
-   return LieBaseMatrix<DimGroup,DimMatrix>(A.getValue()*B.getValue());
-}
-
-
-template <unsigned int DimGroup, unsigned int DimMatrix>
-LieBaseMatrix<DimGroup,DimMatrix>& LieBaseMatrix<DimGroup,DimMatrix>::leftProd
-		(const LieBaseMatrix<DimGroup,DimMatrix> &A) {
-    this->value=A.getValue()*this->value;
-    this->contractor();
-    return (*this);
-}
-
-template <unsigned int DimGroup, unsigned int DimMatrix>
-LieBaseMatrix<DimGroup,DimMatrix>& LieBaseMatrix<DimGroup,DimMatrix>::rightProd
-		(const LieBaseMatrix<DimGroup,DimMatrix> &B) {
-    this->value=this->value*B.getValue();
-    this->contractor();
-    return (*this);
-}
-
-template <unsigned int DimGroup, unsigned int DimMatrix>
-LieBaseMatrix<DimGroup,DimMatrix> LieBaseMatrix<DimGroup,DimMatrix>::inverse() 
+LieBaseMatrix<DimGroup,DimMatrix> LieBaseMatrix<DimGroup,DimMatrix>::inverse()
 const
 {
+   if (this->empty) return LieBaseMatrix<DimGroup,DimMatrix>::Empty();
    IntervalMatrix inv = inverse_enclosure(this->value);
    return LieBaseMatrix<DimGroup,DimMatrix>(inv);
 }
 
 template <unsigned int DimGroup, unsigned int DimMatrix>
-void LieBaseMatrix<DimGroup,DimMatrix>::inverse_inplace() 
+void LieBaseMatrix<DimGroup,DimMatrix>::inverse_inplace()
 {
+   if (this->empty) return;
    this->value = inverse_enclosure(this->value);
    this->contract();
 }
+
 
 template <unsigned int DimGroup, unsigned int DimMatrix>
 LieBaseMatrix<DimGroup,DimMatrix> LieBaseMatrix<DimGroup,DimMatrix>::IleftProd
 		(const LieBaseMatrix &A) const
 {
+   if (this->empty || A.is_empty()) return LieBaseMatrix<DimGroup,DimMatrix>::Empty();
    IntFullPivLU pivLU(this->value);
    IntervalMatrix RA = pivLU.solve(A);
    return LieBaseMatrix<DimGroup,DimMatrix>(RA);
@@ -103,6 +65,7 @@ template <unsigned int DimGroup, unsigned int DimMatrix>
 LieBaseMatrix<DimGroup,DimMatrix> LieBaseMatrix<DimGroup,DimMatrix>::IrightProd
 		(const LieBaseMatrix &A) const
 {
+   if (this->empty || A.is_empty()) return LieBaseMatrix<DimGroup,DimMatrix>::Empty();
    IntFullPivLU pivLU(this->value.transpose());
    IntervalMatrix RA = pivLU.solve(A.transpose());
    return LieBaseMatrix<DimGroup,DimMatrix>(RA.transpose());
@@ -111,6 +74,7 @@ LieBaseMatrix<DimGroup,DimMatrix> LieBaseMatrix<DimGroup,DimMatrix>::IrightProd
 template <unsigned int DimGroup, unsigned int DimMatrix>
 LieBaseMatrix<DimGroup,DimMatrix> LieBaseMatrix<DimGroup,DimMatrix>::center()
 {
+   if (this->empty) return LieBaseMatrix<DimGroup,DimMatrix>::Empty();
    Matrix Ct = this->value.mid();
    IntFullPivLU pivLU(Ct.transpose());
    if (pivLU.isInvertible()==BoolInterval::TRUE) {
@@ -125,6 +89,7 @@ LieBaseMatrix<DimGroup,DimMatrix> LieBaseMatrix<DimGroup,DimMatrix>::center()
 template <unsigned int DimGroup, unsigned int DimMatrix>
 std::ostream& operator<<(std::ostream& os,
                              const LieBaseMatrix<DimGroup,DimMatrix>& x) {
+     if (x.empty) { os << "Lie:empty" ; return os; }
      os << "Lie:" << x.value;
      return os;
 }
