@@ -9,9 +9,7 @@
 
 
 #include <codac>
-#include "src/lieGroup.h"
-#include "src/lieSE2.h"
-#include "src/intExp.h"
+#include "../intLie.h"
 
 using namespace lieInt;
 using namespace codac2;

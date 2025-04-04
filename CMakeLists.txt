@@ -37,22 +37,23 @@
   message(STATUS "Found Codac inclusion ${CODAC_INCLUDE_DIRS}")
   message(STATUS "Found Codac flags ${CODAC_CFLAGS}")
 
-#set(LIBS diff_inclusion)
-set(EXECS intlie)
+set(LIBS intLie)
+set(EXECS test_intExp1 test_lieSE2)
 
 # Compilation
+
+set(SRCS src/intExp.cpp src/lieGroup.cpp src/lieSE2.cpp)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options(-Wall)
-#foreach(LIB1 ${LIBS})
-#  add_library(${LIB1} STATIC diffincl.cpp diff_quadbox.cpp)
-#  target_include_directories(${LIB1} PUBLIC ${CODAC_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIRS} ${PKG_CAPD_INCLUDE_DIRS})
-#  target_compile_options(${LIB1} PUBLIC ${CODAC_CFLAGS} ${PKG_CPAD_CFLAGS})
-#  target_link_libraries(${LIB1} ${CODAC_LIBRARIES} Ibex::ibex ${PKG_CAPD_LDFLAGS} /usr/local/lib/libprim.a)
-#endforeach(LIB1 ${LIBS})
+foreach(LIB1 ${LIBS})
+  add_library(${LIB1} STATIC ${SRCS})
+  target_include_directories(${LIB1} PUBLIC ${CODAC_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIRS} ${PKG_CAPD_INCLUDE_DIRS})
+  target_link_libraries(${LIB1} ${CODAC_LIBRARIES} Ibex::ibex /usr/local/lib/libprim.a)
+endforeach(LIB1 ${LIBS})
 foreach(EXECUTABLE ${EXECS})
-  add_executable(${EXECUTABLE} ${EXECUTABLE}.cpp src/lieGroup.cpp src/lieSE2.cpp src/intExp.cpp)
+  add_executable(${EXECUTABLE} tests/${EXECUTABLE}.cpp)
   target_include_directories(${EXECUTABLE} PUBLIC ${CODAC_INCLUDE_DIRS} ${IBEX_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIRS})
   target_link_libraries(${EXECUTABLE} ${CODAC_LIBRARIES} Ibex::ibex ${LIBS} /usr/local/lib/libprim.a)
 endforeach(EXECUTABLE ${EXECUTABLES})

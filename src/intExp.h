@@ -9,6 +9,8 @@
 
 #include <codac>
 
+using namespace codac2;
+
 namespace lieInt
 {
 
