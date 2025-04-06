@@ -33,17 +33,17 @@ Matrix LieBaseMatrix<DimGroup,DimMatrix>::representationAlgebra
 }
 #endif
 
-template <unsigned int DimGroup, unsigned int DimMatrix>
-LieBaseMatrix<DimGroup,DimMatrix> LieBaseMatrix<DimGroup,DimMatrix>::inverse()
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+Derived LieBaseMatrix<DimGroup,DimMatrix,Derived>::inverse()
 const
 {
-   if (this->empty) return LieBaseMatrix<DimGroup,DimMatrix>::Empty();
+   if (this->empty) return LieBaseMatrix<DimGroup,DimMatrix,Derived>::Empty();
    IntervalMatrix inv = inverse_enclosure(this->value);
-   return LieBaseMatrix<DimGroup,DimMatrix>(inv);
+   return LieBaseMatrix<DimGroup,DimMatrix,Derived>(inv).derived();
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix>
-void LieBaseMatrix<DimGroup,DimMatrix>::inverse_inplace()
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+void LieBaseMatrix<DimGroup,DimMatrix,Derived>::inverse_inplace()
 {
    if (this->empty) return;
    this->value = inverse_enclosure(this->value);
@@ -51,44 +51,44 @@ void LieBaseMatrix<DimGroup,DimMatrix>::inverse_inplace()
 }
 
 
-template <unsigned int DimGroup, unsigned int DimMatrix>
-LieBaseMatrix<DimGroup,DimMatrix> LieBaseMatrix<DimGroup,DimMatrix>::IleftProd
-		(const LieBaseMatrix &A) const
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+Derived LieBaseMatrix<DimGroup,DimMatrix,Derived>::IleftProd
+		(const LieBaseMatrix<DimGroup,DimMatrix,Derived> &A) const
 {
-   if (this->empty || A.is_empty()) return LieBaseMatrix<DimGroup,DimMatrix>::Empty();
+   if (this->empty || A.is_empty()) return LieBaseMatrix<DimGroup,DimMatrix,Derived>::Empty();
    IntFullPivLU pivLU(this->value);
    IntervalMatrix RA = pivLU.solve(A);
-   return LieBaseMatrix<DimGroup,DimMatrix>(RA);
+   return LieBaseMatrix<DimGroup,DimMatrix,Derived>(RA).derived();
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix>
-LieBaseMatrix<DimGroup,DimMatrix> LieBaseMatrix<DimGroup,DimMatrix>::IrightProd
-		(const LieBaseMatrix &A) const
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+Derived LieBaseMatrix<DimGroup,DimMatrix,Derived>::IrightProd
+		(const LieBaseMatrix<DimGroup,DimMatrix,Derived> &A) const
 {
-   if (this->empty || A.is_empty()) return LieBaseMatrix<DimGroup,DimMatrix>::Empty();
+   if (this->empty || A.is_empty()) return LieBaseMatrix<DimGroup,DimMatrix,Derived>::Empty();
    IntFullPivLU pivLU(this->value.transpose());
    IntervalMatrix RA = pivLU.solve(A.transpose());
-   return LieBaseMatrix<DimGroup,DimMatrix>(RA.transpose());
+   return LieBaseMatrix<DimGroup,DimMatrix,Derived>(RA.transpose()).derived();
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix>
-LieBaseMatrix<DimGroup,DimMatrix> LieBaseMatrix<DimGroup,DimMatrix>::center()
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+Derived LieBaseMatrix<DimGroup,DimMatrix,Derived>::center()
 {
-   if (this->empty) return LieBaseMatrix<DimGroup,DimMatrix>::Empty();
+   if (this->empty) return LieBaseMatrix<DimGroup,DimMatrix,Derived>::Empty();
    Matrix Ct = this->value.mid();
    IntFullPivLU pivLU(Ct.transpose());
    if (pivLU.isInvertible()==BoolInterval::TRUE) {
       this->value = pivLU.solve(this->value.transpose()).transpose();
       this->contract();
-      return LieBaseMatrix<DimGroup,DimMatrix>(Ct);
+      return LieBaseMatrix<DimGroup,DimMatrix,Derived>(Ct).derived();
    } else {
-      return LieBaseMatrix<DimGroup,DimMatrix>();
+      return LieBaseMatrix<DimGroup,DimMatrix,Derived>::Identity();
    }
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix>
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
 std::ostream& operator<<(std::ostream& os,
-                             const LieBaseMatrix<DimGroup,DimMatrix>& x) {
+                             const LieBaseMatrix<DimGroup,DimMatrix,Derived>& x) {
      if (x.empty) { os << "Lie:empty" ; return os; }
      os << "Lie:" << x.value;
      return os;

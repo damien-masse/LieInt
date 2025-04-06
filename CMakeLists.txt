@@ -10,12 +10,12 @@
   # In case you installed IBEX in a local directory, you need 
   # to specify its path with the CMAKE_PREFIX_PATH option.
   # set(CMAKE_PREFIX_PATH "~/ibex-lib/build_install")
-
-  find_package(IBEX REQUIRED)
-  ibex_init_common() # IBEX should have installed this function
-  message(STATUS "Found IBEX version ${IBEX_VERSION}")
-  message(STATUS "Found IBEX inclusion ${IBEX_INCLUDE_DIRS}")
-
+#
+#  find_package(IBEX REQUIRED)
+#  ibex_init_common() # IBEX should have installed this function
+#  message(STATUS "Found IBEX version ${IBEX_VERSION}")
+#  message(STATUS "Found IBEX inclusion ${IBEX_INCLUDE_DIRS}")
+#
 ## Adding Eigen3
 #
 #  # In case you installed Eigen3 in a local directory, you need
@@ -36,13 +36,14 @@
   message(STATUS "Found Codac version ${CODAC_VERSION}")
   message(STATUS "Found Codac inclusion ${CODAC_INCLUDE_DIRS}")
   message(STATUS "Found Codac flags ${CODAC_CFLAGS}")
+  message(STATUS "Found Codac libraries ${CODAC_LIBRARIES}")
 
 set(LIBS intLie)
-set(EXECS test_intExp1 test_lieSE2)
+set(EXECS test_intExp1 test_lieSE2_0 test_lieSE2_1)
 
 # Compilation
 
-set(SRCS src/intExp.cpp src/lieGroup.cpp src/lieSE2.cpp)
+set(SRCS src/intExp.cpp src/lieGroup.cpp src/lieSE2.cpp src/contract.cpp)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -50,10 +51,10 @@ add_compile_options(-Wall)
 foreach(LIB1 ${LIBS})
   add_library(${LIB1} STATIC ${SRCS})
   target_include_directories(${LIB1} PUBLIC ${CODAC_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIRS} ${PKG_CAPD_INCLUDE_DIRS})
-  target_link_libraries(${LIB1} ${CODAC_LIBRARIES} Ibex::ibex /usr/local/lib/libprim.a)
+  target_link_libraries(${LIB1} ${CODAC_LIBRARIES} )
 endforeach(LIB1 ${LIBS})
 foreach(EXECUTABLE ${EXECS})
   add_executable(${EXECUTABLE} tests/${EXECUTABLE}.cpp)
   target_include_directories(${EXECUTABLE} PUBLIC ${CODAC_INCLUDE_DIRS} ${IBEX_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIRS})
-  target_link_libraries(${EXECUTABLE} ${CODAC_LIBRARIES} Ibex::ibex ${LIBS} /usr/local/lib/libprim.a)
+  target_link_libraries(${EXECUTABLE} ${CODAC_LIBRARIES} ${LIBS})
 endforeach(EXECUTABLE ${EXECUTABLES})

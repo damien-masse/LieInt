@@ -13,91 +13,99 @@
 
 using namespace codac2;
 
+
 namespace lieInt
 {
+
+
     /* define a basic class for matrix Lie groups */
-    template <unsigned int DimGroup, unsigned int DimMatrix>
+    template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
     class LieBaseMatrix {
       public:
+         
+         using LieIntervalMatrix = Eigen::Matrix<Interval,DimMatrix,DimMatrix>;
+         using LieMatrix = Eigen::Matrix<double,DimMatrix,DimMatrix>;
 
          LieBaseMatrix(); /* full */
 
-         explicit LieBaseMatrix(const IntervalMatrix &M);
+         explicit LieBaseMatrix(const LieIntervalMatrix &M);
   
-         static const LieBaseMatrix Empty();
-         static const LieBaseMatrix Identity();
+         static const Derived Empty();
+         static const Derived Identity();
+
+         Derived &derived();
 
          virtual void contractor();
 
-         const IntervalMatrix& getValue() const;
+         const LieIntervalMatrix& getValue() const;
 
-	 static IntervalMatrix
+	 static LieIntervalMatrix
 		representationAlgebra(const IntervalVector &V);
-	 static Matrix
+	 static LieMatrix
 		representationAlgebra(const Vector &V);
 
-         template <unsigned int DG, unsigned int DM>
-         friend LieBaseMatrix<DG,DM> 
-		operator*(const LieBaseMatrix<DG,DM> &A,
-			  const LieBaseMatrix<DG,DM> &B);
-         LieBaseMatrix& leftProd(const LieBaseMatrix &A);
-         LieBaseMatrix& rightProd(const LieBaseMatrix &B);
+         template <unsigned int DG, unsigned int DM, class Der>
+         friend Der operator*(const LieBaseMatrix<DG,DM,Der> &A,
+		 	      const LieBaseMatrix<DG,DM,Der> &B);
+         Derived& leftProd(const LieBaseMatrix &A);
+         Derived& rightProd(const LieBaseMatrix &B);
 
-         LieBaseMatrix inverse() const;
+         Derived inverse() const;
          void inverse_inplace();
-         LieBaseMatrix IleftProd(const LieBaseMatrix &A) const;
-         LieBaseMatrix IrightProd(const LieBaseMatrix &A) const;
-         LieBaseMatrix center();
+         Derived IleftProd(const LieBaseMatrix &A) const;
+         Derived IrightProd(const LieBaseMatrix &A) const;
+         Derived center();
 
          bool is_empty() const;
          void set_empty();
 
-         template <unsigned int DG, unsigned int DM>
+         template <unsigned int DG, unsigned int DM, class Der>
 	 friend std::ostream& operator<<(std::ostream& os,
-				 const LieBaseMatrix<DG,DM>& x);
+				 const LieBaseMatrix<DG,DM,Der>& x);
 
       protected:
-	 IntervalMatrix value;
+	 LieIntervalMatrix value;
          bool empty;
     };
 
     /* advanced class for matrix Lie group */
-    template <unsigned int DimGroup, unsigned int DimMatrix, class Base>
+    template <unsigned int DimGroup, unsigned int DimMatrix, class Base,
+	class Derived>
     class LieExtMatrix {
         public:
 	   LieExtMatrix();
            LieExtMatrix(const Base &Left, const Base &Cent);
            LieExtMatrix(const Base &B);
 
-           static const LieExtMatrix Empty();
-           static const LieExtMatrix Identity();
+           static const Derived Empty();
+           static const Derived Identity();
+
+           Derived &derived();
 
            void contractor();
            
            Base getValueBase() const;
            
-           template <unsigned int DG, unsigned int DM, class BS>
-	   friend LieExtMatrix<DG,DM,BS>
-			 operator*(const LieExtMatrix<DG,DM,BS> &A,
-				    const LieExtMatrix<DG,DM,BS> &B);
-           template <unsigned int DG, unsigned int DM, class BS>
-	   friend LieExtMatrix<DG,DM,BS> 
-			operator*(const LieExtMatrix<DG,DM,BS> &A,
+           template <unsigned int DG, unsigned int DM, class BS, class DR>
+	   friend Derived operator*(const LieExtMatrix<DG,DM,BS,DR> &A,
+				    const LieExtMatrix<DG,DM,BS,DR> &B);
+           template <unsigned int DG, unsigned int DM, class BS, class DR>
+	   friend Derived operator*(const LieExtMatrix<DG,DM,BS,DR> &A,
 				  const BS &B);
-           template <unsigned int DG, unsigned int DM, class BS>
-	   friend LieExtMatrix<DG,DM,BS> 
-			operator*(const BS &A, const LieExtMatrix<DG,DM,BS> &B);
-           LieExtMatrix& leftProd(const LieExtMatrix &A);
-           LieExtMatrix& leftProd(const Base &A);
-           LieExtMatrix& rightProd(const LieExtMatrix &B);
-           LieExtMatrix& rightProd(const Base &B);
+           template <unsigned int DG, unsigned int DM, class BS, class DR>
+	   friend Derived operator*(const BS &A, 
+				    const LieExtMatrix<DG,DM,BS,DR> &B);
+           Derived& leftProd(const LieExtMatrix &A);
+           Derived& leftProd(const Base &A);
+           Derived& rightProd(const LieExtMatrix &B);
+           Derived& rightProd(const Base &B);
 
            bool is_empty() const;
            void set_empty();
 
-           template <unsigned int DG, unsigned int DM, class BS>
+           template <unsigned int DG, unsigned int DM, class BS, class DR>
            friend std::ostream& operator<< (std::ostream& os,
-                                 const LieExtMatrix<DG,DM,BS>& x);
+                                 const LieExtMatrix<DG,DM,BS,DR>& x);
 
 	   protected:
 	      Base left,cent;
@@ -105,184 +113,191 @@ namespace lieInt
     };
 
 /*** inline functions for LieBaseMatrix ***/
-template <unsigned int DimGroup, unsigned int DimMatrix>
-inline LieBaseMatrix<DimGroup,DimMatrix>::LieBaseMatrix() :
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+inline LieBaseMatrix<DimGroup,DimMatrix,Derived>::LieBaseMatrix() :
     value(DimMatrix,DimMatrix), empty(false)
 {
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix>
-inline LieBaseMatrix<DimGroup,DimMatrix>::LieBaseMatrix(const IntervalMatrix &M) :
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+inline LieBaseMatrix<DimGroup,DimMatrix,Derived>::LieBaseMatrix(const LieBaseMatrix<DimGroup,DimMatrix,Derived>::LieIntervalMatrix &M) :
     value(M), empty(M.is_empty())
 {
-    assert_release(M.cols()==DimMatrix && M.rows()==DimMatrix);
     if (!this->empty) this->contractor();
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix>
-inline const LieBaseMatrix<DimGroup,DimMatrix> LieBaseMatrix<DimGroup,DimMatrix>::Empty() {
-    return LieBaseMatrix<DimGroup,DimMatrix>(IntervalMatrix::Constant
-                (DimMatrix,DimMatrix,Interval::empty()));
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+inline const Derived LieBaseMatrix<DimGroup,DimMatrix,Derived>::Empty() {
+    return LieBaseMatrix<DimGroup,DimMatrix,Derived>(IntervalMatrix::Constant
+                (DimMatrix,DimMatrix,Interval::empty())).derived();
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix>
-inline const LieBaseMatrix<DimGroup,DimMatrix> LieBaseMatrix<DimGroup,DimMatrix>::Identity() {
-    return LieBaseMatrix<DimGroup,DimMatrix>(IntervalMatrix::Identity
-                (DimMatrix,DimMatrix));
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+inline const Derived LieBaseMatrix<DimGroup,DimMatrix,Derived>::Identity() {
+    return LieBaseMatrix<DimGroup,DimMatrix,Derived>(LieBaseMatrix<DimGroup,DimMatrix,Derived>::LieIntervalMatrix::Identity()).derived();
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix>
-inline void LieBaseMatrix<DimGroup,DimMatrix>::contractor() {
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+inline void LieBaseMatrix<DimGroup,DimMatrix,Derived>::contractor() {
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix>
-inline const IntervalMatrix& LieBaseMatrix<DimGroup,DimMatrix>::getValue() const {
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+inline const LieBaseMatrix<DimGroup,DimMatrix,Derived>::LieIntervalMatrix& LieBaseMatrix<DimGroup,DimMatrix,Derived>::getValue() const {
     return this->value;
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix>
-inline LieBaseMatrix<DimGroup, DimMatrix> operator*
-        (const LieBaseMatrix<DimGroup,DimMatrix> &A,
-         const LieBaseMatrix<DimGroup,DimMatrix> &B) {
-   if (A.empty || B.empty) return LieBaseMatrix<DimGroup, DimMatrix>::Empty();
-   return LieBaseMatrix<DimGroup,DimMatrix>(A.getValue()*B.getValue());
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+inline Derived &LieBaseMatrix<DimGroup,DimMatrix,Derived>::derived() {
+   return *static_cast<Derived*>(this);
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix>
-inline LieBaseMatrix<DimGroup,DimMatrix>& LieBaseMatrix<DimGroup,DimMatrix>::leftProd
-                (const LieBaseMatrix<DimGroup,DimMatrix> &A) {
-    if (this->empty) return (*this);
-    if (A.empty) {  this->set_empty(); return (*this); }
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+inline Derived operator*
+        (const LieBaseMatrix<DimGroup,DimMatrix,Derived> &A,
+         const LieBaseMatrix<DimGroup,DimMatrix,Derived> &B) {
+   if (A.empty || B.empty) 
+	return LieBaseMatrix<DimGroup, DimMatrix,Derived>::Empty();
+   return 
+	LieBaseMatrix<DimGroup,DimMatrix,Derived>(A.getValue()*B.getValue()).derived();
+}
+
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+inline Derived& LieBaseMatrix<DimGroup,DimMatrix,Derived>::leftProd
+                (const LieBaseMatrix<DimGroup,DimMatrix,Derived> &A) {
+    if (this->empty) return (*this).derived();
+    if (A.empty) {  this->set_empty(); return (*this).derived(); }
     this->value=A.getValue()*this->value;
     this->contractor();
-    return (*this);
+    return (*this).derived();
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix>
-inline LieBaseMatrix<DimGroup,DimMatrix>& LieBaseMatrix<DimGroup,DimMatrix>::rightProd
-                (const LieBaseMatrix<DimGroup,DimMatrix> &A) {
-    if (this->empty) return (*this);
-    if (A.empty) {  this->set_empty(); return (*this); }
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+inline Derived& LieBaseMatrix<DimGroup,DimMatrix,Derived>::rightProd
+                (const LieBaseMatrix<DimGroup,DimMatrix,Derived> &A) {
+    if (this->empty) return (*this).derived();
+    if (A.empty) {  this->set_empty(); return (*this).derived(); }
     this->value=this->value*A.getValue();
     this->contractor();
-    return (*this);
+    return (*this).derived();
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix>
-inline bool LieBaseMatrix<DimGroup,DimMatrix>::is_empty() const {
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+inline bool LieBaseMatrix<DimGroup,DimMatrix,Derived>::is_empty() const {
    return this->empty;
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix>
-inline void LieBaseMatrix<DimGroup,DimMatrix>::set_empty() {
+template <unsigned int DimGroup, unsigned int DimMatrix,class Derived>
+inline void LieBaseMatrix<DimGroup,DimMatrix,Derived>::set_empty() {
    this->empty=true;
 }
 
 /*** inline functions for LieExtMatrix ***/
-template <unsigned int DimGroup, unsigned int DimMatrix, class Base>
-inline LieExtMatrix<DimGroup,DimMatrix,Base>::LieExtMatrix() :
-        left(), cent(LieExtMatrix<DimGroup,DimMatrix,Base>::Identity()),
+template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
+inline LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::LieExtMatrix() :
+        left(), cent(Base::Identity()),
         empty(false) {
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix, class Base>
-inline LieExtMatrix<DimGroup,DimMatrix,Base>::LieExtMatrix(const Base& Left,
+template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
+inline LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::LieExtMatrix(const Base& Left,
 			const Base& Cent) :
         left(Left), cent(Cent), empty(left.is_empty() || cent.is_empty()) {
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix, class Base>
-inline LieExtMatrix<DimGroup,DimMatrix,Base>::LieExtMatrix(const Base& B)
+template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
+inline LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::LieExtMatrix(const Base& B)
 			:
         left(B), cent(), empty(left.is_empty()) {
    if (this->empty) { cent=Base::Empty(); return; }
    cent = left.center();
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix, class Base>
-inline const LieExtMatrix<DimGroup,DimMatrix,Base> LieExtMatrix<DimGroup,DimMatrix,Base>::Empty() {
-   return LieExtMatrix(Base::Empty(), Base::Empty());
+template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
+inline const Derived LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::Empty() {
+   return LieExtMatrix(Base::Empty(), Base::Empty()).derived();
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix, class Base>
-inline const LieExtMatrix<DimGroup,DimMatrix,Base> LieExtMatrix<DimGroup,DimMatrix,Base>::Identity() {
-   return LieExtMatrix(Base::Identity(), Base::Identity());
+template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
+inline const Derived LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::Identity() {
+   return LieExtMatrix(Base::Identity(), Base::Identity()).derived();
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix, class Base>
-inline Base LieExtMatrix<DimGroup,DimMatrix,Base>::getValueBase() const {
+template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
+inline Derived &LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::derived() {
+   return *static_cast<Derived*>(this);
+}
+
+template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
+inline Base LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::getValueBase() const {
      if (this->is_empty()) return Base::Empty();
      Base b = left*cent;
      return b;
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix, class Base>
-inline LieExtMatrix<DimGroup,DimMatrix,Base>
-	 operator*(const LieExtMatrix<DimGroup,DimMatrix,Base> &A,
-		    const LieExtMatrix<DimGroup,DimMatrix,Base> &B) {
+template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
+inline Derived operator*(const LieExtMatrix<DimGroup,DimMatrix,Base,Derived> &A,
+		    const LieExtMatrix<DimGroup,DimMatrix,Base,Derived> &B) {
      if (A.is_empty() || B.is_empty()) 
-		return LieExtMatrix<DimGroup,DimMatrix,Base>::Empty();
+		return LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::Empty();
      Base centR = A.cent * B.cent;
      Base leftR = A.left * A.cent.IrightProd(A.cent * B.left);
-     return LieExtMatrix<DimGroup,DimMatrix,Base>(leftR,centR);
+     return LieExtMatrix<DimGroup,DimMatrix,Base,Derived>(leftR,centR).derived();
 }
 
 
-template <unsigned int DimGroup, unsigned int DimMatrix, class Base>
-inline LieExtMatrix<DimGroup,DimMatrix,Base>
-	 operator*(const LieExtMatrix<DimGroup,DimMatrix,Base> &A,
+template <unsigned int DimGroup, unsigned int DimMatrix, class Base,class Derived>
+inline Derived operator*(const LieExtMatrix<DimGroup,DimMatrix,Base,Derived> &A,
 		    const Base &B) {
      if (A.is_empty() || B.is_empty()) 
-		return LieExtMatrix<DimGroup,DimMatrix,Base>::Empty();
-     LieExtMatrix<DimGroup,DimMatrix,Base> C(B);
+		return LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::Empty();
+     LieExtMatrix<DimGroup,DimMatrix,Base,Derived> C(B);
      return C.leftProd(A);
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix, class Base>
-inline LieExtMatrix<DimGroup,DimMatrix,Base>
-	 operator*(const Base &A,
-	 	const LieExtMatrix<DimGroup,DimMatrix,Base> &B) {
+template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
+inline Derived operator*(const Base &A,
+	 	const LieExtMatrix<DimGroup,DimMatrix,Base,Derived> &B) {
      if (A.is_empty() || B.is_empty()) 
-		return LieExtMatrix<DimGroup,DimMatrix,Base>::Empty();
-     LieExtMatrix<DimGroup,DimMatrix,Base> C(A);
+		return LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::Empty();
+     LieExtMatrix<DimGroup,DimMatrix,Base,Derived> C(A);
      return C.rightProd(B);
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix, class Base>
-inline LieExtMatrix<DimGroup,DimMatrix,Base>& 
-	LieExtMatrix<DimGroup,DimMatrix,Base>::leftProd
-                (const LieExtMatrix<DimGroup,DimMatrix,Base> &A) {
-     if (this->is_empty()) return (*this);
-     if (A.is_empty()) { this->set_empty(); return (*this); } 
+template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
+inline Derived& 
+	LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::leftProd
+                (const LieExtMatrix<DimGroup,DimMatrix,Base,Derived> &A) {
+     if (this->is_empty()) return (*this).derived();
+     if (A.is_empty()) { this->set_empty(); return (*this).derived(); } 
     this->cent.leftProd(A.cent);
     this->left = A.left * A.cent.IrightProd(A.cent * this->left);
-    return (*this);
+    return (*this).derived();
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix, class Base>
-inline LieExtMatrix<DimGroup,DimMatrix,Base>& 
-	LieExtMatrix<DimGroup,DimMatrix,Base>::rightProd
-                (const LieExtMatrix<DimGroup,DimMatrix,Base> &B) {
+template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
+inline Derived&
+	LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::rightProd
+                (const LieExtMatrix<DimGroup,DimMatrix,Base,Derived> &B) {
     if (this->is_empty()) return (*this);
-    if (B.is_empty()) { this->set_empty(); return (*this); } 
+    if (B.is_empty()) { this->set_empty(); return (*this).derived(); } 
     this->left=this->left * this->cent.IrightProd(this->cent * B.left);
     this->cent.rightProd(B.cent);
-    return (*this);
+    return (*this).derived();
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix, class Base>
-inline bool LieExtMatrix<DimGroup,DimMatrix,Base>::is_empty() const {
+template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
+inline bool LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::is_empty() const {
     return this->empty;
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix, class Base>
-inline void LieExtMatrix<DimGroup,DimMatrix,Base>::set_empty() {
+template <unsigned int DimGroup, unsigned int DimMatrix, class Base,class Derived>
+inline void LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::set_empty() {
     this->empty=true;
 }
 
-template <unsigned int DimGroup, unsigned int DimMatrix, class Base>
+template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
 inline std::ostream& operator<<(std::ostream& os,
-                             const LieExtMatrix<DimGroup,DimMatrix,Base>& x) {
+                             const LieExtMatrix<DimGroup,DimMatrix,Base,Derived>& x) {
      if (x.is_empty()) { os << "Lie:(empty)"; return os; }
      os << "Lie:(" << x.left << "*" << x.cent << ")" ;
      return os;

@@ -21,7 +21,7 @@ int main() {
       { 0.0, 0.0, 0.0 } };
    
    for (int s=0;s<=5;s++) {
-     for (int n=2;n<=20;n++) {
+     for (int n=2;n<=10;n++) {
         IntervalMatrix U = encloseIntExp(M,n,s);
         double res = std::max(U(0,2).diam(),U(1,2).diam());
         std::cout << s << ";" << n << ";" << res << "\n";

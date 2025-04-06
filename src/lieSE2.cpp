@@ -16,14 +16,14 @@ using namespace codac2;
 namespace lieInt
 {
 
-const std::vector<Matrix> SE2Base::LieAlgebraGenerators
+const std::vector<SE2Base::LieMatrix> SE2Base::LieAlgebraGenerators
      { { {0,-1,0}, {1,0,0}, {0,0,0} },
        { {0,0,1},  {0,0,0}, {0,0,0} },
        { {0,0,0},  {0,0,1}, {0,0,0} } };
 
 void SE2Base::contractor() {
    if (this->empty) return;
-   IntervalMatrix &M = this->value;
+   SE2Base::LieIntervalMatrix &M = this->value;
    /* contract last row */
    M(2,0) &= 0.0;
    M(2,1) &= 0.0;
@@ -39,18 +39,18 @@ void SE2Base::contractor() {
    if (M.is_empty()) M.set_empty(); 
 }
 
-IntervalMatrix SE2Base::representationAlgebra(const IntervalVector &V) {
+SE2Base::LieIntervalMatrix SE2Base::representationAlgebra(const IntervalVector &V) {
    assert(V.size()==SE2Base::LieAlgebraGenerators.size());
-   IntervalMatrix R = IntervalMatrix::Zero(3,3);
+   SE2Base::LieIntervalMatrix R = SE2Base::LieIntervalMatrix::Zero();
    for (int i=0;i<V.size();i++) {
        R += V[i]*SE2Base::LieAlgebraGenerators[i];
    }
    return R;
 }
 
-Matrix SE2Base::representationAlgebra(const Vector &V) {
+SE2Base::LieMatrix SE2Base::representationAlgebra(const Vector &V) {
    assert(V.size()==SE2Base::LieAlgebraGenerators.size());
-   Matrix R = Matrix::Zero(3,3);
+   SE2Base::LieMatrix R = SE2Base::LieMatrix::Zero();
    for (int i=0;i<V.size();i++) {
        R += V[i]*SE2Base::LieAlgebraGenerators[i];
    }
@@ -59,7 +59,7 @@ Matrix SE2Base::representationAlgebra(const Vector &V) {
 
 SE2Base SE2Base::inverse() const {
    if (this->empty) return SE2Base::Empty();
-   IntervalMatrix M = this->value;
+   SE2Base::LieIntervalMatrix M = this->value;
    M(0,1) = -M(0,1);
    M(1,0) = -M(1,0);
    M.block<2,1>(0,2) = -M.topLeftCorner<2,2>()*M.block<2,1>(0,2);
@@ -68,7 +68,7 @@ SE2Base SE2Base::inverse() const {
 
 void SE2Base::inverse_inplace() {
    if (this->empty) return;
-   IntervalMatrix &M = this->value;
+   SE2Base::LieIntervalMatrix &M = this->value;
    M(0,1) = -M(0,1);
    M(1,0) = -M(1,0);
    M.block<2,1>(0,2) = -M.topLeftCorner<2,2>()*M.block<2,1>(0,2);
@@ -88,9 +88,34 @@ SE2Base SE2Base::IrightProd(const SE2Base &A) const {
      return R;
 }
 
-std::vector<Interval> SE2Base::angles() const {
+SE2Base SE2Base::center() {
+     if (this->empty) return SE2Base::Empty();
+     IntervalMatrix Ct = this->value.mid();
+     if (Ct(0,0)==0.0 && Ct(1,0)==0.0) {
+          return SE2Base::Identity();
+     }
+     Interval a = Atan2Op::fwd(Ct(1,0),Ct(0,0));
+     Ct(0,0) = Ct(1,1) = CosOp::fwd(a);
+     Ct(1,0) = SinOp::fwd(a);
+     Ct(0,1) = -Ct(1,0);
+     /* M = M'.Ct   =>    M' = M Ct^{-1} */
+     SE2Base::LieIntervalMatrix &M = this->value;
+     Interval p1 = -Ct(0,2)*Ct(0,0)-Ct(1,2)*Ct(1,0);
+     Interval p2 = Ct(0,2)*Ct(1,0)-Ct(1,2)*Ct(0,0);
+     M(0,2) += M(0,0)*p1 + M(0,1)*p2;
+     M(1,2) += M(1,0)*p1 + M(1,1)*p2;
+     M(0,0) = Ct(0,0)*M(1,1)-Ct(1,0)*M(0,1);
+     M(1,0) = -Ct(1,0)*M(1,1)-Ct(0,0)*M(0,1);
+     SqrOp::bwd(1.0-SqrOp::fwd(M(1,0)),M(0,0));
+     SqrOp::bwd(1.0-SqrOp::fwd(M(0,0)),M(1,0));
+     M(0,1) = -M(1,0);
+     M(1,1) = M(0,0);
+     return SE2Base(Ct);
+}
+
+const std::vector<Interval> SE2Base::angles() const {
      if (this->empty) return std::vector<Interval>();
-     const IntervalMatrix &M = this->value;
+     const SE2Base::LieIntervalMatrix &M = this->value;
      Interval AngC = AcosOp::fwd(M(0,0));
      Interval AngS = AsinOp::fwd(M(1,0));
      /* [0,pi/2] : AngC & AngS */
@@ -126,9 +151,9 @@ std::vector<Interval> SE2Base::angles() const {
 
 std::ostream& operator<<(std::ostream& os, const SE2Base& x) {
      if (x.is_empty()) { os << "SE2:empty"; return os; }
-     const IntervalMatrix &M = x.getValue();
+     const SE2Base::LieIntervalMatrix &M = x.getValue();
      os << "SE2:(x" << M(0,2) << ";y" << M(1,2) << ";th";
-     std::vector<Interval> LAng = x.angles();
+     const std::vector<Interval> LAng = x.angles();
      for (auto ang : LAng) os << ang;
      os << ")";
      return os;
@@ -143,7 +168,7 @@ void SE2Base::draw(Figure2DInterface &fig2D, bool drawDirection,
      if (!drawDirection) return;
      Vector Cent(B.mid());
      double r = B.diam().minCoeff()*0.4;
-     std::vector<Interval> LAng = this->angles();
+     const std::vector<Interval> LAng = this->angles();
      for (auto ang : LAng) {
           Vector P1 { r*cos(ang.lb()) , r*sin(ang.lb()) };
           Vector P2 { r*cos(ang.ub()) , r*sin(ang.ub()) };
@@ -153,6 +178,98 @@ void SE2Base::draw(Figure2DInterface &fig2D, bool drawDirection,
 }
 
 void SE2Base::draw(bool drawDirection, 
+		const StyleProperties& sBox, const StyleProperties& sPie) {
+     this->draw(*DefaultView::selected_fig(),drawDirection,sBox,sPie);
+}
+
+inline static Vector rot2(double theta) {
+     return { cos(theta) , sin(theta) };
+}
+
+void SE2Ext::draw(Figure2DInterface &fig2D, bool drawDirection,
+          const StyleProperties& sBox, const StyleProperties& SPie) {
+     if (this->empty) return;
+     IntervalVector B(2);
+     B[0]=this->left.getValue()(0,2);
+     B[1]=this->left.getValue()(1,2);
+     IntervalVector Trans(2);
+     Trans[0]=this->cent.getValue()(0,2);
+     Trans[1]=this->cent.getValue()(1,2);
+     Interval angleCent = Atan2Op::fwd(Trans[1],Trans[0]);
+     Interval rhoCent = SqrtOp::fwd(SqrOp::fwd(Trans[0])+SqrOp::fwd(Trans[1]));
+     const std::vector<Interval> LAng = this->left.angles();
+     for (auto ang : LAng) {
+          Interval sumAngle= ang+angleCent;
+          IntervalVector boxUp = B+rhoCent*rot2(sumAngle.ub());
+          if (cos(sumAngle.ub())>0.0) {
+              fig2D.draw_polyline({
+				{boxUp[0].lb(), boxUp[1].ub()},
+				{boxUp[0].ub(), boxUp[1].ub()} },0,sBox);
+          } 
+          else if (cos(sumAngle.ub())<0.0) {
+              fig2D.draw_polyline({
+				{boxUp[0].lb(), boxUp[1].lb()},
+				{boxUp[0].ub(), boxUp[1].lb()} },0,sBox);
+          }
+          if (sin(sumAngle.ub())>0.0) {
+              fig2D.draw_polyline({
+				{boxUp[0].lb(), boxUp[1].lb()},
+				{boxUp[0].lb(), boxUp[1].ub()} },0,sBox);
+          } 
+          else if (sin(sumAngle.ub())<0.0) {
+              fig2D.draw_polyline({
+				{boxUp[0].ub(), boxUp[1].lb()},
+				{boxUp[0].ub(), boxUp[1].ub()} },0,sBox);
+          }
+          IntervalVector boxDown = B+rhoCent*rot2(sumAngle.lb());
+          if (cos(sumAngle.lb())>0.0) {
+              fig2D.draw_polyline({
+				{boxDown[0].lb(), boxDown[1].lb()},
+				{boxDown[0].ub(), boxDown[1].lb()} },0,sBox);
+          } 
+          else if (cos(sumAngle.lb())<0.0) {
+              fig2D.draw_polyline({
+				{boxDown[0].lb(), boxDown[1].ub()},
+				{boxDown[0].ub(), boxDown[1].ub()} },0,sBox);
+          }
+          if (sin(sumAngle.lb())>0.0) {
+              fig2D.draw_polyline({
+				{boxDown[0].ub(), boxDown[1].lb()},
+				{boxDown[0].ub(), boxDown[1].ub()} },0,sBox);
+          } 
+          else if (sin(sumAngle.lb())<0.0) {
+              fig2D.draw_polyline({
+				{boxDown[0].lb(), boxDown[1].lb()},
+				{boxDown[0].lb(), boxDown[1].ub()} },0,sBox);
+          }
+          fig2D.draw_pie(B.ub(),rhoCent,sumAngle,sBox);
+          fig2D.draw_pie(B.lb(),rhoCent,sumAngle,sBox);
+          fig2D.draw_pie({B[0].ub(),B[1].lb()},rhoCent,sumAngle,sBox);
+          fig2D.draw_pie({B[0].lb(),B[1].ub()},rhoCent,sumAngle,sBox);
+          if (CosOp::fwd(sumAngle).contains(1.0)) 
+             fig2D.draw_polyline({
+				{B[0].ub()+rhoCent.ub(),B[1].lb()},
+				{B[0].ub()+rhoCent.ub(),B[1].ub()}
+				 },0,sBox);
+          if (CosOp::fwd(sumAngle).contains(-1.0)) 
+             fig2D.draw_polyline({
+				{B[0].lb()-rhoCent.ub(),B[1].lb()},
+				{B[0].lb()-rhoCent.ub(),B[1].ub()}
+				 },0,sBox);
+          if (SinOp::fwd(sumAngle).contains(1.0)) 
+             fig2D.draw_polyline({
+				{B[0].lb(),B[1].ub()+rhoCent.ub()},
+				{B[0].ub(),B[1].ub()+rhoCent.ub()}
+				 },0,sBox);
+          if (SinOp::fwd(sumAngle).contains(-1.0)) 
+             fig2D.draw_polyline({
+				{B[0].lb(),B[1].lb()-rhoCent.ub()},
+				{B[0].ub(),B[1].lb()-rhoCent.ub()}
+				 },0,sBox);
+     }
+}
+
+void SE2Ext::draw(bool drawDirection, 
 		const StyleProperties& sBox, const StyleProperties& sPie) {
      this->draw(*DefaultView::selected_fig(),drawDirection,sBox,sPie);
 }
