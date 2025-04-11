@@ -103,7 +103,6 @@ IntervalMatrix encloseIntExp(const std::vector<IntervalMatrix>& P,
    IntervalMatrix Somme = IntervalMatrix::Zero(dim,dim);
    int i=1;
    Interval maxnorm(1.0);
-   std::cout << "nbstepsmin : " << nbstepsmin << "\n";
    while ((i<=nbstepsmin) || (maxnorm.ub()>=tau && i<=n)) {
         maxnorm = Interval(0.0);
         Interval K(1.0);
@@ -126,9 +125,6 @@ IntervalMatrix encloseIntExp(const std::vector<IntervalMatrix>& P,
         Somme = Somme+terms[place];
 	i=i+1;
    }
-   std::cout << "i final :" << i << "\n";
-   std::cout << "Q :" << Q << "\n";
-   std::cout << "maxnorm :" << maxnorm << "\n";
    double eps = ((maxnorm*Q)/(1-Q)).ub();
    Somme += IntervalMatrix::Constant(dim,dim,Interval(-eps,eps));
 //   std::cout << "Somme : " << Somme << "\n";
