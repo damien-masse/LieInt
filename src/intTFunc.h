@@ -48,12 +48,34 @@ namespace lieInt {
      return ret;
   }
 
+  template<class T> 
+  inline TimeTube<std::vector<IntervalVector>>
+		 buildPolynomialTube(const AnalyticFunction<T> &f, int degree,
+			const Interval &range, unsigned int nbslices) {
+     assert(degree==1);
+     TimeTube<std::vector<IntervalVector>> ret = { range , 
+		std::vector<TimeSlice<std::vector<IntervalVector>>>(nbslices) };
+     double time = range.lb();
+     for (unsigned int i=0;i<nbslices;i++) {
+        double nexttime = (i<nbslices-1 ?
+		range.lb()+(range.diam()/nbslices)*(i+1) : range.ub());
+        ret.tube[i].time=Interval(time, nexttime);
+        ret.tube[i].value.push_back
+			(f.eval(EvalMode::NATURAL,ret.tube[i].time.lb()));
+        ret.tube[i].value.push_back
+			(f.diff(ret.tube[i].time));
+        time=nexttime;
+     }
+     return ret;
+  }
+
   template <class LEG>
 //  requires std::is_base_of_v<LieExtMatrix,LEG>
   class odeIntegrator {
      public:
        static TimeTube<LEG> integrate_tube(const TimeTube<IntervalVector> &TIn,
-                const LEG &startvalue);
+                const LEG &startvalue, bool gates=false);
+       static TimeTube<LEG> integrate_Ptube(const TimeTube<std::vector<IntervalVector>> &TIn, const LEG &startvalue, bool gates=false);
 
        static int maxScaling;
        static int maxTaylor;
@@ -64,7 +86,7 @@ namespace lieInt {
 
 
   template <class LEG>
-  inline TimeTube<LEG> odeIntegrator<LEG>::integrate_tube(const TimeTube<IntervalVector> &TIn, const LEG &startvalue) {
+  inline TimeTube<LEG> odeIntegrator<LEG>::integrate_tube(const TimeTube<IntervalVector> &TIn, const LEG &startvalue, bool gates) {
       unsigned int nbslices = TIn.tube.size();
       TimeTube<LEG> ret = { TIn.timeRange , std::vector<TimeSlice<LEG>>(nbslices) };
       auto currentVal = LEG::Identity();
@@ -79,7 +101,7 @@ namespace lieInt {
 			tauScaling, tauTaylor);
            LEG bIn(valIn);
            ret.tube[i].time=TIn.tube[i].time;
-           ret.tube[i].value=(startvalue*currentVal)*bIn;
+           if (!gates) ret.tube[i].value=(startvalue*currentVal)*bIn;
          }
          {
            IntervalMatrix repAlgOut = 
@@ -89,6 +111,48 @@ namespace lieInt {
 			tauScaling, tauTaylor);
            LEG bIn(valOut);
            currentVal.rightProd(bIn);
+           if (gates) ret.tube[i].value=startvalue*currentVal;
+         }
+      }
+      return ret;
+   } 
+
+  template <class LEG>
+  inline TimeTube<LEG> odeIntegrator<LEG>::integrate_Ptube(const TimeTube<std::vector<IntervalVector>> &TIn, const LEG &startvalue, bool gates) {
+      unsigned int nbslices = TIn.tube.size();
+      TimeTube<LEG> ret = { TIn.timeRange , std::vector<TimeSlice<LEG>>(nbslices) };
+      auto currentVal = LEG::Identity();
+      int degPol=TIn.tube[0].value.size();
+      for (unsigned int i=0;i<nbslices;i++) {
+         Interval timeval=TIn.tube[i].time - TIn.tube[i].time.lb();
+         Interval timediam=TIn.tube[i].time.diam();
+         {
+	   std::vector<IntervalMatrix> repPoly(degPol);
+           Interval tval=timeval;
+	   for (int z=0;z<degPol;z++) {
+ 	      repPoly[z] = 
+		LEG::Base::representationAlgebra(tval*TIn.tube[i].value[z]);
+              tval = tval*timeval;
+           }
+           IntervalMatrix valIn =
+		encloseIntExp(repPoly, maxTaylor, tauTaylor);
+           LEG bIn(valIn);
+           ret.tube[i].time=TIn.tube[i].time;
+           if (!gates) ret.tube[i].value=(startvalue*currentVal)*bIn;
+         }
+         {
+	   std::vector<IntervalMatrix> repPoly(degPol);
+           Interval tval=timediam;
+	   for (int z=0;z<degPol;z++) {
+ 	      repPoly[z] = 
+		LEG::Base::representationAlgebra(tval*TIn.tube[i].value[z]);
+              tval = tval*timediam;
+           }
+           IntervalMatrix valOut =
+		encloseIntExp(repPoly, maxTaylor, tauTaylor);
+           LEG bIn(valOut);
+           currentVal.rightProd(bIn);
+           if (gates) ret.tube[i].value=startvalue*currentVal;
          }
       }
       return ret;

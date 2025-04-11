@@ -43,4 +43,18 @@ namespace lieInt
   IntervalMatrix encloseIntExp(const IntervalMatrix& A, int n, int S,
 		   	       double tauSS=0.0, double tauExp=0.0);
 
+
+
+  /** \brief computation of IntExp(P) with a truncated Polynomial expansion
+   * 
+   *  \param P the polynomial values (vector of square matrices)
+   *  \param n (max) order of the truncated expansion
+   *  \param tau precision of the expansion (stops when ||remain|| < tau).
+   *         (default 0.0)
+   *
+   *  \return the enclosure
+   */
+  IntervalMatrix encloseIntExp(const std::vector<IntervalMatrix>& P,
+					 int n, double tau=0.0);
+
 }

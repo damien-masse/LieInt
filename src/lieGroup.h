@@ -88,6 +88,8 @@ namespace lieInt
            void contractor();
            
            Base getValueBase() const;
+           Base getLeft() const;
+           Base getCenter() const;
            
            template <unsigned int DG, unsigned int DM, class BS, class DR>
 	   friend DR operator*(const LieExtMatrix<DG,DM,BS,DR> &A,
@@ -241,6 +243,16 @@ inline Base LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::getValueBase() const 
      if (this->is_empty()) return Base::Empty();
      Base b = left*cent;
      return b;
+}
+template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
+inline Base LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::getLeft() const {
+     if (this->is_empty()) return Base::Empty();
+     return left;
+}
+template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
+inline Base LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::getCenter() const {
+     if (this->is_empty()) return Base::Empty();
+     return cent;
 }
 
 template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>

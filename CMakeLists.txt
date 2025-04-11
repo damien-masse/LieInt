@@ -39,7 +39,7 @@
   message(STATUS "Found Codac libraries ${CODAC_LIBRARIES}")
 
 set(LIBS intLie)
-set(EXECS test_intExp1 test_lieSE2_0 test_lieSE2_1 test_contract test_intTFunc)
+set(EXECS test_intExp1 test_lieSE2_0 test_lieSE2_1 test_contract test_intTFunc test_intTFunc_2)
 
 # Compilation
 
