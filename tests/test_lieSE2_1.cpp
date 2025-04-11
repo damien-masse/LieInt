@@ -23,7 +23,6 @@ int main() {
       { 0.0, 0.0, 1.0 } };
    
      SE2Base E(M);
-     std::cout << E << "\n";
 
      E.draw();
 
@@ -32,7 +31,7 @@ int main() {
      N.draw();
      
      SE2Ext Ext(E,Ct);
-     Ext.draw(false, StyleProperties(Color::red()));
+     Ext.draw(true, StyleProperties(Color::red()));
   }
 
   {
@@ -42,7 +41,7 @@ int main() {
  
      SE2Ext Ext(M,C);
 
-     Ext.draw(false,StyleProperties(Color::blue()));
+     Ext.draw(true,StyleProperties(Color::blue()));
   }
 
   {
@@ -53,8 +52,8 @@ int main() {
      SE2Ext Ext(M,C);
 
 
-     (M*C).draw();
-     Ext.draw(false,StyleProperties(Color::blue()));
+//     (M*C).draw();
+     Ext.draw(true,StyleProperties(Color::red()));
   }
 
 }

@@ -10,6 +10,7 @@
 
 #include <codac>
 #include "lieSE2.h"
+#include "contract.h"
 
 using namespace codac2;
 
@@ -28,15 +29,11 @@ void SE2Base::contractor() {
    M(2,0) &= 0.0;
    M(2,1) &= 0.0;
    M(2,2) &= 1.0;
+   if (M(2,0).is_empty() || M(2,1).is_empty() || M(2,2).is_empty()) {
+      M.set_empty(); return;
+   }
    /* contract rotation */
-   M(0,0) &= M(1,1);
-   M(1,0) &= -M(0,1);
-   SqrOp::bwd(1.0-SqrOp::fwd(M(1,0)),M(0,0));
-   SqrOp::bwd(1.0-SqrOp::fwd(M(0,0)),M(1,0));
-   M(1,1) = M(0,0);
-   M(0,1) = -M(1,0);
-   /* emptiness */
-   if (M.is_empty()) M.set_empty(); 
+   if (!contract_rotMatrix2(M.topLeftCorner<2,2>())) { M.set_empty(); }
 }
 
 SE2Base::LieIntervalMatrix SE2Base::representationAlgebra(const IntervalVector &V) {
@@ -48,7 +45,7 @@ SE2Base::LieIntervalMatrix SE2Base::representationAlgebra(const IntervalVector &
    return R;
 }
 
-SE2Base::LieMatrix SE2Base::representationAlgebra(const Vector &V) {
+SE2Base::LieMatrix SE2Base::representationAlgebraV(const Vector &V) {
    assert(V.size()==SE2Base::LieAlgebraGenerators.size());
    SE2Base::LieMatrix R = SE2Base::LieMatrix::Zero();
    for (int i=0;i<V.size();i++) {
@@ -106,8 +103,9 @@ SE2Base SE2Base::center() {
      M(1,2) += M(1,0)*p1 + M(1,1)*p2;
      M(0,0) = Ct(0,0)*M(1,1)-Ct(1,0)*M(0,1);
      M(1,0) = -Ct(1,0)*M(1,1)-Ct(0,0)*M(0,1);
-     SqrOp::bwd(1.0-SqrOp::fwd(M(1,0)),M(0,0));
-     SqrOp::bwd(1.0-SqrOp::fwd(M(0,0)),M(1,0));
+     if (!contract_unitVector2(M.topLeftCorner<2,1>())) {
+       M.set_empty(); return SE2Base(Ct);
+     }
      M(0,1) = -M(1,0);
      M(1,1) = M(0,0);
      return SE2Base(Ct);
@@ -159,7 +157,7 @@ std::ostream& operator<<(std::ostream& os, const SE2Base& x) {
      return os;
 }
 
-void SE2Base::draw(Figure2DInterface &fig2D, bool drawDirection,
+void SE2Base::draw(Figure2D &fig2D, bool drawDirection,
                 const StyleProperties& sBox, const StyleProperties& sPie) {
      IntervalVector B(2);
      B[0]=this->value(0,2);
@@ -173,7 +171,7 @@ void SE2Base::draw(Figure2DInterface &fig2D, bool drawDirection,
           Vector P1 { r*cos(ang.lb()) , r*sin(ang.lb()) };
           Vector P2 { r*cos(ang.ub()) , r*sin(ang.ub()) };
           fig2D.draw_polyline({Cent+P1, Cent, Cent+P2},0,sPie);
-          fig2D.draw_pie(B.mid(),0.4*B.diam().minCoeff(),ang,sPie);
+          fig2D.draw_pie(Cent,r,ang,sPie);
      }
 }
 
@@ -182,90 +180,91 @@ void SE2Base::draw(bool drawDirection,
      this->draw(*DefaultView::selected_fig(),drawDirection,sBox,sPie);
 }
 
-inline static Vector rot2(double theta) {
+inline static Eigen::Matrix<double,2,1> rot2(double theta) {
      return { cos(theta) , sin(theta) };
 }
 
-void SE2Ext::draw(Figure2DInterface &fig2D, bool drawDirection,
-          const StyleProperties& sBox, const StyleProperties& SPie) {
+void SE2Ext::draw(Figure2D &fig2D, bool drawDirection,
+          const StyleProperties& sBox, const StyleProperties& sPie) {
      if (this->empty) return;
-     IntervalVector B(2);
-     B[0]=this->left.getValue()(0,2);
-     B[1]=this->left.getValue()(1,2);
-     IntervalVector Trans(2);
-     Trans[0]=this->cent.getValue()(0,2);
-     Trans[1]=this->cent.getValue()(1,2);
-     Interval angleCent = Atan2Op::fwd(Trans[1],Trans[0]);
+     auto &B = this->left.getValue().topRightCorner<2,1>();
+     auto &Trans = this->cent.getValue().topRightCorner<2,1>();
      Interval rhoCent = SqrtOp::fwd(SqrOp::fwd(Trans[0])+SqrOp::fwd(Trans[1]));
+     Interval angleCent = Interval::zero();
+     if (rhoCent.ub()>0.0) angleCent = Atan2Op::fwd(Trans[1],Trans[0]);
+     Interval angleAfter = Atan2Op::fwd(this->cent.getValue()(1,0),
+		this->cent.getValue()(0,0));
      const std::vector<Interval> LAng = this->left.angles();
      for (auto ang : LAng) {
           Interval sumAngle= ang+angleCent;
           IntervalVector boxUp = B+rhoCent*rot2(sumAngle.ub());
           if (cos(sumAngle.ub())>0.0) {
-              fig2D.draw_polyline({
-				{boxUp[0].lb(), boxUp[1].ub()},
-				{boxUp[0].ub(), boxUp[1].ub()} },0,sBox);
+              fig2D.draw_line( {boxUp[0].lb(), boxUp[1].ub()},
+				{boxUp[0].ub(), boxUp[1].ub()},sBox);
           } 
           else if (cos(sumAngle.ub())<0.0) {
-              fig2D.draw_polyline({
-				{boxUp[0].lb(), boxUp[1].lb()},
-				{boxUp[0].ub(), boxUp[1].lb()} },0,sBox);
+              fig2D.draw_line( {boxUp[0].lb(), boxUp[1].lb()},
+				{boxUp[0].ub(), boxUp[1].lb()} ,sBox);
           }
           if (sin(sumAngle.ub())>0.0) {
-              fig2D.draw_polyline({
-				{boxUp[0].lb(), boxUp[1].lb()},
-				{boxUp[0].lb(), boxUp[1].ub()} },0,sBox);
+              fig2D.draw_line( {boxUp[0].lb(), boxUp[1].lb()},
+				{boxUp[0].lb(), boxUp[1].ub()} ,sBox);
           } 
           else if (sin(sumAngle.ub())<0.0) {
-              fig2D.draw_polyline({
-				{boxUp[0].ub(), boxUp[1].lb()},
-				{boxUp[0].ub(), boxUp[1].ub()} },0,sBox);
+              fig2D.draw_line({boxUp[0].ub(), boxUp[1].lb()},
+				{boxUp[0].ub(), boxUp[1].ub() },sBox);
+          }
+	  if (drawDirection) {
+              Vector Cnt = boxUp.mid();
+              double r = B.diam().minCoeff()*0.4;
+              Interval ang2 = ang+angleAfter;
+              Vector P1 { r*cos(ang2.lb()) , r*sin(ang2.lb()) };
+              Vector P2 { r*cos(ang2.ub()) , r*sin(ang2.ub()) };
+              fig2D.draw_polyline({Cnt+P1, Cnt, Cnt+P2},0,sPie);
+              fig2D.draw_pie(Cnt,r,ang2,sPie);
           }
           IntervalVector boxDown = B+rhoCent*rot2(sumAngle.lb());
           if (cos(sumAngle.lb())>0.0) {
-              fig2D.draw_polyline({
-				{boxDown[0].lb(), boxDown[1].lb()},
-				{boxDown[0].ub(), boxDown[1].lb()} },0,sBox);
+              fig2D.draw_line({ boxDown[0].lb(), boxDown[1].lb()},
+				{boxDown[0].ub(), boxDown[1].lb()} ,sBox);
           } 
           else if (cos(sumAngle.lb())<0.0) {
-              fig2D.draw_polyline({
-				{boxDown[0].lb(), boxDown[1].ub()},
-				{boxDown[0].ub(), boxDown[1].ub()} },0,sBox);
+              fig2D.draw_line( {boxDown[0].lb(), boxDown[1].ub()},
+				{boxDown[0].ub(), boxDown[1].ub() },sBox);
           }
           if (sin(sumAngle.lb())>0.0) {
-              fig2D.draw_polyline({
-				{boxDown[0].ub(), boxDown[1].lb()},
-				{boxDown[0].ub(), boxDown[1].ub()} },0,sBox);
+              fig2D.draw_line( {boxDown[0].ub(), boxDown[1].lb()},
+				{boxDown[0].ub(), boxDown[1].ub()} ,sBox);
           } 
           else if (sin(sumAngle.lb())<0.0) {
-              fig2D.draw_polyline({
-				{boxDown[0].lb(), boxDown[1].lb()},
-				{boxDown[0].lb(), boxDown[1].ub()} },0,sBox);
+              fig2D.draw_line( {boxDown[0].lb(), boxDown[1].lb()},
+				{boxDown[0].lb(), boxDown[1].ub() },sBox);
+          }
+	  if (drawDirection) {
+              Vector Cnt = boxDown.mid();
+              double r = B.diam().minCoeff()*0.4;
+              Interval ang2 = ang+angleAfter;
+              Vector P1 { r*cos(ang2.lb()) , r*sin(ang2.lb()) };
+              Vector P2 { r*cos(ang2.ub()) , r*sin(ang2.ub()) };
+              fig2D.draw_polyline({Cnt+P1, Cnt, Cnt+P2},0,sPie);
+              fig2D.draw_pie(Cnt,r,ang2,sPie);
           }
           fig2D.draw_pie(B.ub(),rhoCent,sumAngle,sBox);
           fig2D.draw_pie(B.lb(),rhoCent,sumAngle,sBox);
           fig2D.draw_pie({B[0].ub(),B[1].lb()},rhoCent,sumAngle,sBox);
           fig2D.draw_pie({B[0].lb(),B[1].ub()},rhoCent,sumAngle,sBox);
           if (CosOp::fwd(sumAngle).contains(1.0)) 
-             fig2D.draw_polyline({
-				{B[0].ub()+rhoCent.ub(),B[1].lb()},
-				{B[0].ub()+rhoCent.ub(),B[1].ub()}
-				 },0,sBox);
+             fig2D.draw_line( {B[0].ub()+rhoCent.ub(),B[1].lb()},
+				{B[0].ub()+rhoCent.ub(),B[1].ub()} ,sBox);
           if (CosOp::fwd(sumAngle).contains(-1.0)) 
-             fig2D.draw_polyline({
-				{B[0].lb()-rhoCent.ub(),B[1].lb()},
-				{B[0].lb()-rhoCent.ub(),B[1].ub()}
-				 },0,sBox);
+             fig2D.draw_line( {B[0].lb()-rhoCent.ub(),B[1].lb()},
+				{B[0].lb()-rhoCent.ub(),B[1].ub()} ,sBox);
           if (SinOp::fwd(sumAngle).contains(1.0)) 
-             fig2D.draw_polyline({
-				{B[0].lb(),B[1].ub()+rhoCent.ub()},
-				{B[0].ub(),B[1].ub()+rhoCent.ub()}
-				 },0,sBox);
+             fig2D.draw_line( {B[0].lb(),B[1].ub()+rhoCent.ub()},
+				{B[0].ub(),B[1].ub()+rhoCent.ub()} ,sBox);
           if (SinOp::fwd(sumAngle).contains(-1.0)) 
-             fig2D.draw_polyline({
-				{B[0].lb(),B[1].lb()-rhoCent.ub()},
-				{B[0].ub(),B[1].lb()-rhoCent.ub()}
-				 },0,sBox);
+             fig2D.draw_line( {B[0].lb(),B[1].lb()-rhoCent.ub()},
+			      {B[0].ub(),B[1].lb()-rhoCent.ub()} ,sBox);
      }
 }
 

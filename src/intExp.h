@@ -7,6 +7,8 @@
  *  \license    GNU Lesser General Public License (LGPL)
  */
 
+#pragma once
+
 #include <codac>
 
 using namespace codac2;

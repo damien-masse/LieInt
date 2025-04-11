@@ -15,12 +15,17 @@ using namespace codac2;
 namespace lieInt
 {
 
-bool contract_unitVector2(Eigen::Vector<Interval,2> const &CA) {
-   Eigen::Vector<Interval,2> &A = const_cast<Eigen::Vector<Interval,2>& >(CA);
-   SqrOp::bwd(1.0-SqrOp::fwd(A[1]),A[0]);
-   SqrOp::bwd(1.0-SqrOp::fwd(A[0]),A[1]);
-   return (!A[0].is_empty() && !A[1].is_empty());
+#if 0
+template <VectorInterval Derived>
+bool contract_unitVector2(Eigen::MatrixBase<Derived> const &CA) {
+   Eigen::MatrixBase<Derived> &A = const_cast<Eigen::MatrixBase<Derived>& >(CA);
+//   A.derived().resize(A.rows(),A.cols());
+   SqrOp::bwd(1.0-SqrOp::fwd(A(1,0)),A(0,0));
+   SqrOp::bwd(1.0-SqrOp::fwd(A(0,0)),A(1,0));
+   std::cout << A << "\n" << CA << "\n";
+   return (!A(0,0).is_empty() && !A(1,0).is_empty());
 }
+#endif
 
 bool contract_unitVector(IntervalVector const &CA) {
    IntervalVector &A = const_cast<IntervalVector& >(CA);
@@ -53,7 +58,7 @@ bool contract_unitVector(IntervalVector const &CA) {
 bool contract_rotMatrix2(Eigen::Matrix<Interval,2,2>& A) {
    A(0,0) &= A(1,1);
    A(1,0) &= -A(0,1);
-   if (!contract_unitVector2(A.topLeftCorner<1,2>())) return false;
+   if (!contract_unitVector2(A.topLeftCorner<2,1>())) return false;
    A(1,1) &= A(0,0);
    A(0,1) &= -A(1,0);
    return true;
@@ -73,15 +78,16 @@ bool contract_rotMatrix2(Eigen::Matrix<Interval,2,2>& A) {
         if (contract_unitVector(A.row(i))) return false;
         if (contract_unitVector(A.col(i))) return false;
      }
-/*     for (int i=0;i<d;i++) {
+#if 0
+     for (int i=0;i<d;i++) {
        for (int j=0;j<d;j++) {
           if (i==j) continue;
           MulOp::bwd(0.0,A.col(i).transpose(),A.col(j));
-		// DOES NOT COMPILE FOR NOW 
           if (A.col(i).is_empty()) return false;
        }
      }
-*/
+#endif
+
      for (int i=0;i<d;i++) {
         if (contract_unitVector(A.row(i))) return false;
         if (contract_unitVector(A.col(i))) return false;

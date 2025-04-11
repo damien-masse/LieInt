@@ -39,11 +39,11 @@
   message(STATUS "Found Codac libraries ${CODAC_LIBRARIES}")
 
 set(LIBS intLie)
-set(EXECS test_intExp1 test_lieSE2_0 test_lieSE2_1)
+set(EXECS test_intExp1 test_lieSE2_0 test_lieSE2_1 test_contract test_intTFunc)
 
 # Compilation
 
-set(SRCS src/intExp.cpp src/lieGroup.cpp src/lieSE2.cpp src/contract.cpp)
+set(SRCS src/intExp.cpp src/lieGroup.cpp src/lieSE2.cpp src/intTFunc.cpp)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

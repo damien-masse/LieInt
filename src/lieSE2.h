@@ -29,7 +29,7 @@ namespace lieInt
         static LieIntervalMatrix
                 representationAlgebra(const IntervalVector &V);
         static LieMatrix
-                representationAlgebra(const Vector &V);
+                representationAlgebraV(const Vector &V);
 
 
         SE2Base inverse() const;
@@ -44,7 +44,7 @@ namespace lieInt
         void draw(bool drawDirection=true,
                 const StyleProperties& sBox = StyleProperties(),
                 const StyleProperties& sPie = StyleProperties());
-        void draw(Figure2DInterface &fig2D, bool drawDirection=true,
+        void draw(Figure2D &fig2D, bool drawDirection=true,
 		const StyleProperties& sBox = StyleProperties(),
 		const StyleProperties& sPie = StyleProperties());
 
@@ -58,14 +58,16 @@ namespace lieInt
  
     class SE2Ext : public LieExtMatrix<3,3,SE2Base,SE2Ext> {
       public:
+        using Base = SE2Base;
+ 
         using LieExtMatrix<3,3,SE2Base,SE2Ext>::LieExtMatrix;
     
-        void draw(Figure2DInterface &fig2D, bool drawDirection=false,
+        void draw(Figure2D &fig2D, bool drawDirection=false,
 		const StyleProperties& sBox = StyleProperties(),
-		const StyleProperties& SPie = StyleProperties());
+		const StyleProperties& sPie = StyleProperties());
         void draw(bool drawDirection=false,
 		const StyleProperties& sBox = StyleProperties(),
-		const StyleProperties& SPie = StyleProperties());
+		const StyleProperties& sPie = StyleProperties());
 
     };
 
