@@ -12,6 +12,7 @@
 #include "lieGroup.h"
 #include "intExp.h"
 #include "lieSE2.h"
+#include "lieSO3.h"
 
 using namespace codac2;
 
@@ -170,5 +171,6 @@ namespace lieInt {
 
 
    using SE2Integrator = odeIntegrator<SE2Ext>;
+   using SO3Integrator = odeIntegrator<SO3Ext>;
 
 }

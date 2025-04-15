@@ -19,9 +19,9 @@ namespace lieInt
 {
 
 const std::vector<SO3Base::LieMatrix> SO3Base::LieAlgebraGenerators
-     { { {0,-1,0}, {1,0,0}, {0,0,0} },
+     { { {0,0,0},  {0,0,-1}, {0,1,0} },
        { {0,0,1},  {0,0,0}, {-1,0,0} },
-       { {0,0,0},  {0,0,-1}, {0,1,0} } };
+       { {0,-1,0}, {1,0,0}, {0,0,0}  } };
 
 
 SO3Base::SO3Base(const SO3Base::CardanAngles &ang) :
