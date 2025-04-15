@@ -158,7 +158,7 @@ std::ostream& operator<<(std::ostream& os, const SE2Base& x) {
 }
 
 void SE2Base::draw(Figure2D &fig2D, bool drawDirection,
-                const StyleProperties& sBox, const StyleProperties& sPie) {
+                const StyleProperties& sBox, const StyleProperties& sPie) const {
      IntervalVector B(2);
      B[0]=this->value(0,2);
      B[1]=this->value(1,2);
@@ -176,7 +176,7 @@ void SE2Base::draw(Figure2D &fig2D, bool drawDirection,
 }
 
 void SE2Base::draw(bool drawDirection, 
-		const StyleProperties& sBox, const StyleProperties& sPie) {
+		const StyleProperties& sBox, const StyleProperties& sPie) const {
      this->draw(*DefaultView::selected_fig(),drawDirection,sBox,sPie);
 }
 
@@ -185,7 +185,7 @@ inline static Eigen::Matrix<double,2,1> rot2(double theta) {
 }
 
 void SE2Ext::draw(Figure2D &fig2D, bool drawDirection,
-          const StyleProperties& sBox, const StyleProperties& sPie) {
+          const StyleProperties& sBox, const StyleProperties& sPie) const {
      if (this->empty) return;
      auto &B = this->left.getValue().topRightCorner<2,1>();
      auto &Trans = this->cent.getValue().topRightCorner<2,1>();
@@ -269,7 +269,7 @@ void SE2Ext::draw(Figure2D &fig2D, bool drawDirection,
 }
 
 void SE2Ext::draw(bool drawDirection, 
-		const StyleProperties& sBox, const StyleProperties& sPie) {
+		const StyleProperties& sBox, const StyleProperties& sPie) const {
      this->draw(*DefaultView::selected_fig(),drawDirection,sBox,sPie);
 }
 

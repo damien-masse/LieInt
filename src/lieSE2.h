@@ -43,10 +43,10 @@ namespace lieInt
 
         void draw(bool drawDirection=true,
                 const StyleProperties& sBox = StyleProperties(),
-                const StyleProperties& sPie = StyleProperties());
+                const StyleProperties& sPie = StyleProperties()) const;
         void draw(Figure2D &fig2D, bool drawDirection=true,
 		const StyleProperties& sBox = StyleProperties(),
-		const StyleProperties& sPie = StyleProperties());
+		const StyleProperties& sPie = StyleProperties()) const;
 
         
         static const std::vector<SE2Base::LieMatrix> LieAlgebraGenerators;
@@ -64,10 +64,10 @@ namespace lieInt
     
         void draw(Figure2D &fig2D, bool drawDirection=false,
 		const StyleProperties& sBox = StyleProperties(),
-		const StyleProperties& sPie = StyleProperties());
+		const StyleProperties& sPie = StyleProperties()) const;
         void draw(bool drawDirection=false,
 		const StyleProperties& sBox = StyleProperties(),
-		const StyleProperties& sPie = StyleProperties());
+		const StyleProperties& sPie = StyleProperties()) const;
 
     };
 

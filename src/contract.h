@@ -170,6 +170,7 @@ inline bool contract_rotMatrix(Eigen::MatrixBase<Derived> const &CA) {
         if (!contract_unitVector(A.row(i))) return false;
         if (!contract_unitVector(A.col(i))) return false;
    }
+   return true;
 }
 
 }
