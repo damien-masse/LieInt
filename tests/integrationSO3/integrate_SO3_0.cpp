@@ -10,7 +10,7 @@
 
 #include <codac>
 #include <cmath>
-#include "../intLie.h"
+#include "intLie.h"
 
 using namespace lieInt;
 using namespace codac2;
@@ -35,7 +35,7 @@ int main() {
      if (i%30==0) {
         Vector place { std::cos(i/100.0)*10.0, std::sin(i/100.0)*10.0 ,
 				i/100.0 };
-        TRes.tube[i].value.draw3D(f3D,place, 3.0, { Color::red(0.9) });
+        TRes.tube[i].value.draw3D(f3D,place, 3.0);
      }
    }
 

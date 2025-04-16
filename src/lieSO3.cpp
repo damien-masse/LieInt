@@ -120,19 +120,21 @@ std::ostream& operator<<(std::ostream& os, const SO3Base& x) {
 }
 
 void SO3Base::draw3D(Figure3D &fig3D, const Vector& pos,
-		double size, const StyleProperties& s) const {
+		double size, const StyleProperties& s1,
+                const StyleProperties& s2, const StyleProperties& s3) const {
      if (this->empty) return;
      SO3Base save(*this);
      SO3Base cent = save.center(); /* center modify save ... */
-     fig3D.draw_hull(pos,cent.getValue().mid(),size,s);
-     fig3D.draw_box(pos+size*this->value.col(0),s);
+     fig3D.draw_boat_hull(pos,cent.getValue().mid(),size,s1,s2);
+     fig3D.draw_box(pos+size*this->value.col(0),s3);
 }
 
 void SO3Ext::draw3D(Figure3D &fig3D, const Vector& pos,
-                double size, const StyleProperties& s) const {
+		double size, const StyleProperties& s1,
+                const StyleProperties& s2, const StyleProperties& s3) const {
      if (this->empty) return;
-     fig3D.draw_uncertain_hull(pos,
-		this->cent.getValue(),this->left.getValue(),size,s);
+     fig3D.draw_uncertain_boat_hull(pos,
+		this->cent.getValue(),this->left.getValue(),size,s1,s2,s3);
 }
 
 

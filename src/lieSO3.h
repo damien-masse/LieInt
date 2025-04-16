@@ -53,8 +53,10 @@ namespace lieInt
 
         void draw3D(Figure3D &fig3D, const Vector &pos, 
                 double size, 
-		const StyleProperties& s = { Color::dark_gray(0.5) }) const;
-        
+                const StyleProperties& s1 = { Color::yellow(0.8) },
+                const StyleProperties& s2 = { Color::dark_green(0.8) },
+                const StyleProperties& s3 = { Color::yellow(0.3) }) const;
+
         static const std::vector<SO3Base::LieMatrix> LieAlgebraGenerators;
 
         const CardanAngles anglesCardan() const;
@@ -68,7 +70,9 @@ namespace lieInt
     
         void draw3D(Figure3D &fig3D, const Vector &pos,
                 double size, 
-		const StyleProperties& s = { Color::dark_gray(0.5) }) const;
+                const StyleProperties& s1 = { Color::yellow(0.8) },
+                const StyleProperties& s2 = { Color::dark_green(0.8) },
+                const StyleProperties& s3 = { Color::yellow(0.3) }) const;
 
     };
 
