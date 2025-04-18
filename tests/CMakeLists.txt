@@ -11,6 +11,8 @@ set(SRC_TESTS
     integrationSE2/integrate_SE2_0
     integrationSE2/integrate_SE2_1
     integrationSO3/integrate_SO3_0
+    integrationSO3/integrate_SO3_1
+    integrationSO3/integrate_SO3_2
 )
 
 # Compilation
