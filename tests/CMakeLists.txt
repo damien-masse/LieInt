@@ -10,6 +10,7 @@ set(SRC_TESTS
     test_contract
     integrationSE2/integrate_SE2_0
     integrationSE2/integrate_SE2_1
+    integrationSE2/integrate_SE2_2
     integrationSO3/integrate_SO3_0
     integrationSO3/integrate_SO3_1
     integrationSO3/integrate_SO3_2

@@ -10,6 +10,7 @@
 #pragma once
 #include <codac>
 #include "lieGroup.h"
+#include "funcLie.h"
 #include "intExp.h"
 #include "lieSE2.h"
 #include "lieSO3.h"
@@ -32,9 +33,8 @@ namespace lieInt {
      std::vector<struct TimeSlice<V>> tube;
   };
 
-  template<class T> 
   inline TimeTube<IntervalVector>
-		 buildRegularTube(const AnalyticFunction<T> &f, 	
+		 buildRegularTube(const FunctionTAlg &f, 	
 			const Interval &range, unsigned int nbslices) {
      TimeTube<IntervalVector> ret = { range , 
 		std::vector<TimeSlice<IntervalVector>>(nbslices) };
@@ -43,17 +43,15 @@ namespace lieInt {
         double nexttime = (i<nbslices-1 ?
 		range.lb()+(range.diam()/nbslices)*(i+1) : range.ub());
         ret.tube[i].time=Interval(time, nexttime);
-        ret.tube[i].value=f.eval(EvalMode::NATURAL,ret.tube[i].time);
+        ret.tube[i].value=f.eval(ret.tube[i].time);
         time=nexttime;
      }
      return ret;
   }
 
-  template<class T> 
   inline TimeTube<std::vector<IntervalVector>>
-		 buildPolynomialTube(const AnalyticFunction<T> &f, int degree,
+		 buildPolynomialTube(const FunctionTAlg &f, int degree,
 			const Interval &range, unsigned int nbslices) {
-     assert(degree==1);
      TimeTube<std::vector<IntervalVector>> ret = { range , 
 		std::vector<TimeSlice<std::vector<IntervalVector>>>(nbslices) };
      double time = range.lb();
@@ -61,10 +59,7 @@ namespace lieInt {
         double nexttime = (i<nbslices-1 ?
 		range.lb()+(range.diam()/nbslices)*(i+1) : range.ub());
         ret.tube[i].time=Interval(time, nexttime);
-        ret.tube[i].value.push_back
-			(f.eval(EvalMode::NATURAL,ret.tube[i].time.lb()));
-        ret.tube[i].value.push_back
-			(f.diff(ret.tube[i].time));
+        ret.tube[i].value = f.eval(ret.tube[i].time.lb(),degree);
         time=nexttime;
      }
      return ret;

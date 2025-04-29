@@ -50,14 +50,29 @@ namespace lieInt
          Derived& leftProd(const LieBaseMatrix &A);
          Derived& rightProd(const LieBaseMatrix &B);
 
+         template <unsigned int DG, unsigned int DM, class Der>
+         friend Der operator&(const LieBaseMatrix<DG,DM,Der> &A,
+		 	      const LieBaseMatrix<DG,DM,Der> &B);
+         Derived& operator&=(const LieBaseMatrix &A);
+
+         template <unsigned int DG, unsigned int DM, class Der>
+         friend Der operator|(const LieBaseMatrix<DG,DM,Der> &A,
+		 	      const LieBaseMatrix<DG,DM,Der> &B);
+         Derived& operator|=(const LieBaseMatrix &A);
+
          Derived inverse() const;
          void inverse_inplace();
          Derived IleftProd(const LieBaseMatrix &A) const;
          Derived IrightProd(const LieBaseMatrix &A) const;
-         Derived center();
+         /* decompose this to this*A (uncertLeft=true) or
+            A*this (uncertLeft=false). Returns A. If A is computed
+            correctly, this is ``identity''centered */
+         Derived center(bool uncertLeft=true);
 
          bool is_empty() const;
          void set_empty();
+
+         double diam() const;
 
          template <unsigned int DG, unsigned int DM, class Der>
 	 friend std::ostream& operator<<(std::ostream& os,
@@ -76,8 +91,8 @@ namespace lieInt
            using BaseLieGroup = Base;
            
 	   LieExtMatrix();
-           LieExtMatrix(const Base &Left, const Base &Cent);
-           LieExtMatrix(const Base &B);
+           LieExtMatrix(const Base &Left, const Base &Cent, const Base &Right);
+           LieExtMatrix(const Base &B, bool uncertLeft=true);
            LieExtMatrix(const IntervalMatrix &B);
 
            static const Derived Empty();
@@ -88,8 +103,10 @@ namespace lieInt
            void contractor();
            
            Base getValueBase() const;
-           Base getLeft() const;
-           Base getCenter() const;
+           Base getMidBase() const;
+           const Base &getLeft() const;
+           const Base &getCenter() const;
+           const Base &getRight() const;
            
            template <unsigned int DG, unsigned int DM, class BS, class DR>
 	   friend DR operator*(const LieExtMatrix<DG,DM,BS,DR> &A,
@@ -113,7 +130,7 @@ namespace lieInt
                                  const LieExtMatrix<DG,DM,BS,DR>& x);
 
 	   protected:
-	      Base left,cent;
+	      Base left,cent,right;
 	      bool empty;
     };
 
@@ -128,7 +145,8 @@ template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
 inline LieBaseMatrix<DimGroup,DimMatrix,Derived>::LieBaseMatrix(const LieBaseMatrix<DimGroup,DimMatrix,Derived>::LieIntervalMatrix &M) :
     value(M), empty(M.is_empty())
 {
-    if (!this->empty) this->contractor();
+    if (!this->empty) this->contractor(); 
+
 }
 
 template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
@@ -187,6 +205,48 @@ inline Derived& LieBaseMatrix<DimGroup,DimMatrix,Derived>::rightProd
 }
 
 template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+inline Derived operator&
+        (const LieBaseMatrix<DimGroup,DimMatrix,Derived> &A,
+         const LieBaseMatrix<DimGroup,DimMatrix,Derived> &B) {
+   if (A.empty || B.empty) 
+	return LieBaseMatrix<DimGroup, DimMatrix,Derived>::Empty();
+   return 
+	LieBaseMatrix<DimGroup,DimMatrix,Derived>(A.getValue() & B.getValue()).derived();
+}
+
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+inline Derived& LieBaseMatrix<DimGroup,DimMatrix,Derived>::operator&=
+                (const LieBaseMatrix<DimGroup,DimMatrix,Derived> &A) {
+    if (this->empty) return (*this).derived();
+    if (A.empty) {  this->set_empty(); return (*this).derived(); }
+    this->value=A.getValue() & this->value;
+    this->contractor();
+    return (*this).derived();
+}
+
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+inline Derived operator|
+        (const LieBaseMatrix<DimGroup,DimMatrix,Derived> &A,
+         const LieBaseMatrix<DimGroup,DimMatrix,Derived> &B) {
+   return 
+	LieBaseMatrix<DimGroup,DimMatrix,Derived>(A.getValue() | B.getValue()).derived();
+}
+
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+inline Derived& LieBaseMatrix<DimGroup,DimMatrix,Derived>::operator|=
+                (const LieBaseMatrix<DimGroup,DimMatrix,Derived> &A) {
+    if (this->empty) { 
+       this->value=A.getValue(); 
+       this->empty=A.empty; 
+       return (*this).derived(); 
+    }
+    if (A.empty) {  return (*this).derived(); }
+    this->value=A.getValue() | this->value;
+    this->contractor();
+    return (*this).derived();
+}
+
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
 inline bool LieBaseMatrix<DimGroup,DimMatrix,Derived>::is_empty() const {
    return this->empty;
 }
@@ -196,25 +256,44 @@ inline void LieBaseMatrix<DimGroup,DimMatrix,Derived>::set_empty() {
    this->empty=true;
 }
 
+template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
+inline double LieBaseMatrix<DimGroup,DimMatrix,Derived>::diam() const {
+   return this->value.max_diam();
+}
+
 /*** inline functions for LieExtMatrix ***/
 template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
 inline LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::LieExtMatrix() :
-        left(), cent(Base::Identity()),
+        left(Base::Identity()), cent(), right(Base::Identity()),
         empty(false) {
 }
 
 template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
 inline LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::LieExtMatrix(const Base& Left,
-			const Base& Cent) :
-        left(Left), cent(Cent), empty(left.is_empty() || cent.is_empty()) {
+			const Base& Cent, const Base& Right) :
+        left(Left), cent(Cent), right(Right),
+	empty(left.is_empty() || cent.is_empty() || right.is_empty()) {
+   if (this->empty) {
+      this->left.set_empty();
+      this->right.set_empty();
+      this->cent.set_empty();
+   }
 }
 
 template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
-inline LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::LieExtMatrix(const Base& B)
+inline LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::LieExtMatrix(const Base& B, bool uncertLeft)
 			:
-        left(B), cent(), empty(left.is_empty()) {
-   if (this->empty) { cent=Base::Empty(); return; }
-   cent = left.center();
+        left(Base::Identity()), cent(B), right(Base::Identity()),
+        empty(B.is_empty()) {
+   if (this->empty) { 
+     this->right=this->left=Base::Empty();
+     return; 
+   }
+   if (uncertLeft) {
+      right = this->cent.center(uncertLeft);
+   } else {
+      left = this->cent.center(uncertLeft);
+   }
 }
 
 template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
@@ -225,12 +304,12 @@ inline LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::LieExtMatrix(const Interva
 
 template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
 inline const Derived LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::Empty() {
-   return LieExtMatrix(Base::Empty(), Base::Empty()).derived();
+   return LieExtMatrix(Base::Empty(), Base::Empty(), Base::Empty()).derived();
 }
 
 template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
 inline const Derived LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::Identity() {
-   return LieExtMatrix(Base::Identity(), Base::Identity()).derived();
+   return LieExtMatrix(Base::Identity(), Base::Identity(), Base::Identity()).derived();
 }
 
 template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
@@ -241,18 +320,32 @@ inline Derived &LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::derived() {
 template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
 inline Base LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::getValueBase() const {
      if (this->is_empty()) return Base::Empty();
-     Base b = left*cent;
+     Base b = left*cent*right;
      return b;
 }
+
 template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
-inline Base LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::getLeft() const {
+inline Base LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::getMidBase() const {
      if (this->is_empty()) return Base::Empty();
+     Base b = left*right;
+     return b;
+}
+
+template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
+inline const Base 
+	&LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::getLeft() const {
      return left;
 }
 template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
-inline Base LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::getCenter() const {
-     if (this->is_empty()) return Base::Empty();
+inline const Base 
+	&LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::getCenter() const {
      return cent;
+}
+
+template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
+inline const Base 
+	&LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::getRight() const {
+     return right;
 }
 
 template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Derived>
@@ -260,9 +353,16 @@ inline Derived operator*(const LieExtMatrix<DimGroup,DimMatrix,Base,Derived> &A,
 		    const LieExtMatrix<DimGroup,DimMatrix,Base,Derived> &B) {
      if (A.is_empty() || B.is_empty()) 
 		return LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::Empty();
-     Base centR = A.cent * B.cent;
-     Base leftR = A.left * A.cent.IrightProd(A.cent * B.left);
-     return LieExtMatrix<DimGroup,DimMatrix,Base,Derived>(leftR,centR).derived();
+     Base pivot=A.right * B.left;
+     if (A.cent.diam() > B.cent.diam()) { /* to the left */
+        Base centR = A.cent * pivot.IrightProd(pivot * B.cent);
+        return LieExtMatrix<DimGroup,DimMatrix,Base,Derived>
+		(A.left,centR,pivot*B.right).derived();
+     } else {
+        Base centR = pivot.IleftProd(A.cent * pivot) * B.cent;
+        return LieExtMatrix<DimGroup,DimMatrix,Base,Derived>
+		(A.left*pivot,centR,B.right).derived();
+     } 
 }
 
 
@@ -271,7 +371,7 @@ inline Derived operator*(const LieExtMatrix<DimGroup,DimMatrix,Base,Derived> &A,
 		    const Base &B) {
      if (A.is_empty() || B.is_empty()) 
 		return LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::Empty();
-     LieExtMatrix<DimGroup,DimMatrix,Base,Derived> C(B);
+     LieExtMatrix<DimGroup,DimMatrix,Base,Derived> C(B,true);
      return C.leftProd(A);
 }
 
@@ -280,7 +380,7 @@ inline Derived operator*(const Base &A,
 	 	const LieExtMatrix<DimGroup,DimMatrix,Base,Derived> &B) {
      if (A.is_empty() || B.is_empty()) 
 		return LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::Empty();
-     LieExtMatrix<DimGroup,DimMatrix,Base,Derived> C(A);
+     LieExtMatrix<DimGroup,DimMatrix,Base,Derived> C(A,false);
      return C.rightProd(B);
 }
 
@@ -288,10 +388,17 @@ template <unsigned int DimGroup, unsigned int DimMatrix, class Base, class Deriv
 inline Derived& 
 	LieExtMatrix<DimGroup,DimMatrix,Base,Derived>::leftProd
                 (const LieExtMatrix<DimGroup,DimMatrix,Base,Derived> &A) {
-     if (this->is_empty()) return (*this).derived();
-     if (A.is_empty()) { this->set_empty(); return (*this).derived(); } 
-    this->cent.leftProd(A.cent);
-    this->left = A.left * A.cent.IrightProd(A.cent * this->left);
+    if (this->is_empty()) return (*this).derived();
+    if (A.is_empty()) { this->set_empty(); return (*this).derived(); } 
+    Base pivot=A.right * this->left;
+    if (A.cent.diam() > this->cent.diam()) {  /* to the left */
+        this->left=A.left;
+        this->cent = A.cent * pivot.IrightProd(pivot * this->cent);
+        this->right.leftProd(pivot);
+    } else {
+        this->cent.leftProd(pivot.IleftProd(A.cent*pivot));
+        this->left = A.left*pivot;
+    }
     return (*this).derived();
 }
 
@@ -301,8 +408,15 @@ inline Derived&
                 (const LieExtMatrix<DimGroup,DimMatrix,Base,Derived> &B) {
     if (this->is_empty()) return (*this).derived();
     if (B.is_empty()) { this->set_empty(); return (*this).derived(); } 
-    this->left=this->left * this->cent.IrightProd(this->cent * B.left);
-    this->cent.rightProd(B.cent);
+    Base pivot=this->right * B.left;
+    if (this->cent.diam() > B.cent.diam()) {  /* to the left */
+        this->cent.rightProd(pivot.IrightProd(pivot * B.cent));
+        this->right = pivot*B.right;
+    } else {
+        this->right=B.right;
+        this->cent = pivot.IleftProd(this->cent * pivot)*B.cent;
+        this->left.rightProd(pivot);
+    }
     return (*this).derived();
 }
 

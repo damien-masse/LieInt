@@ -72,18 +72,28 @@ Derived LieBaseMatrix<DimGroup,DimMatrix,Derived>::IrightProd
 }
 
 template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>
-Derived LieBaseMatrix<DimGroup,DimMatrix,Derived>::center()
+Derived LieBaseMatrix<DimGroup,DimMatrix,Derived>::center(bool uncertLeft)
 {
    if (this->empty) return LieBaseMatrix<DimGroup,DimMatrix,Derived>::Empty();
    Matrix Ct = this->value.mid();
-   IntFullPivLU pivLU(Ct.transpose());
-   if (pivLU.isInvertible()==BoolInterval::TRUE) {
-      this->value = pivLU.solve(this->value.transpose()).transpose();
-      this->contract();
-      return LieBaseMatrix<DimGroup,DimMatrix,Derived>(Ct).derived();
-   } else {
-      return LieBaseMatrix<DimGroup,DimMatrix,Derived>::Identity();
+   if (uncertLeft) {
+      IntFullPivLU pivLU(Ct.transpose());
+      if (pivLU.isInvertible()==BoolInterval::TRUE) {
+         this->value = pivLU.solve(this->value.transpose()).transpose();
+         this->contract();
+      } else {
+         return LieBaseMatrix<DimGroup,DimMatrix,Derived>::Identity();
+      }
+   } else  {
+      IntFullPivLU pivLU(Ct);
+      if (pivLU.isInvertible()==BoolInterval::TRUE) {
+         this->value = pivLU.solve(this->value());
+         this->contract();
+      } else {
+         return LieBaseMatrix<DimGroup,DimMatrix,Derived>::Identity();
+      }
    }
+   return LieBaseMatrix<DimGroup,DimMatrix,Derived>(Ct).derived();
 }
 
 template <unsigned int DimGroup, unsigned int DimMatrix, class Derived>

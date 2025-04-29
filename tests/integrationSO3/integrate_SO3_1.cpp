@@ -17,9 +17,9 @@ using namespace codac2;
 
 int main() { 
 
-   ScalarVar t;
+   ScalarVar &t = lie_time;
 
-   AnalyticFunction f({t}, vec(cos(t),ScalarExpr(0.5),sin(t)));
+   FuncTAnalytic f(vec(cos(t),ScalarExpr(0.5),sin(t)));
    TimeTube<IntervalVector> T = buildRegularTube(f,Interval(0.0,10.0),2000);
 
    SO3Integrator::maxTaylor=10;

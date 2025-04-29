@@ -83,7 +83,7 @@ SO3Base SO3Base::IrightProd(const SO3Base &A) const {
      return R;
 }
 
-SO3Base SO3Base::center() {
+SO3Base SO3Base::center(bool uncertLeft) {
      if (this->empty) return SO3Base::Empty();
      Matrix Ct = this->value.mid();
      if ((Ct(2,1)==0.0 && Ct(2,2)==0.0) || (Ct(1,0)==0.0 && Ct(0,0)==0.0)) {
@@ -96,7 +96,11 @@ SO3Base SO3Base::center() {
      SO3Base::CardanAngles crd { Interval(psi), Interval(theta), Interval(phi) };
      SO3Base cent(crd);
      SO3Base::LieIntervalMatrix &M = this->value;
-     M = M * cent.getValue().transpose();
+     if (uncertLeft) {
+        M = M * cent.getValue().transpose();
+     } else {
+        M = cent.getValue().transpose() * M;
+     }
      return cent;
 }
 
@@ -134,7 +138,8 @@ void SO3Ext::draw3D(Figure3D &fig3D, const Vector& pos,
                 const StyleProperties& s2, const StyleProperties& s3) const {
      if (this->empty) return;
      fig3D.draw_uncertain_boat_hull(pos,
-		this->cent.getValue(),this->left.getValue(),size,s1,s2,s3);
+		this->left.getValue()*this->right.getValue(),
+		this->cent.getValue(),size,s1,s2,s3);
 }
 
 

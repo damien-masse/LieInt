@@ -36,7 +36,7 @@ namespace lieInt
         void inverse_inplace();
         SE2Base IleftProd(const SE2Base &A) const;
         SE2Base IrightProd(const SE2Base &A) const;
-        SE2Base center();
+        SE2Base center(bool uncertLeft=true);
 
         friend std::ostream& operator<<(std::ostream& os,
                                  const SE2Base& x);
@@ -52,6 +52,8 @@ namespace lieInt
         static const std::vector<SE2Base::LieMatrix> LieAlgebraGenerators;
 
         const std::vector<Interval> angles() const;
+        const Interval &getX() const;
+        const Interval &getY() const;
 
 
     };
@@ -97,5 +99,12 @@ inline SE2Base::SE2Base(const Interval &X, const Interval &Y,
    this->value(0,1) = -this->value(1,0);
 }
 
+inline const Interval& SE2Base::getX() const {
+   return this->value(0,2);
+}
+
+inline const Interval& SE2Base::getY() const {
+   return this->value(1,2);
+}
 
 }

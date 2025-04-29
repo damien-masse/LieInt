@@ -18,9 +18,9 @@ int main() {
 
    DefaultView::set_window_properties({600,600},{300,300});
 
-   ScalarVar t;
+   ScalarVar &t = lie_time;
 
-   AnalyticFunction f({t}, vec(M_PI*pow(sin(t),2.0),ScalarExpr(1.0),ScalarExpr(0.0)));
+   FuncTAnalytic f(vec(M_PI*pow(sin(t),2.0),ScalarExpr(1.0),ScalarExpr(0.0)));
    TimeTube<IntervalVector> T = buildRegularTube(f,Interval(0.0,10.0),3001);
 
    TimeTube<SE2Ext> TRes = 

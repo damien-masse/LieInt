@@ -46,7 +46,7 @@ namespace lieInt
         void inverse_inplace();
         SO3Base IleftProd(const SO3Base &A) const;
         SO3Base IrightProd(const SO3Base &A) const;
-        SO3Base center();
+        SO3Base center(bool uncertLeft=true);
 
         friend std::ostream& operator<<(std::ostream& os,
                                  const SO3Base& x);

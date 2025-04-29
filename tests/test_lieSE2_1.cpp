@@ -30,7 +30,7 @@ int main() {
      SE2Base N = E*Ct;
      N.draw();
      
-     SE2Ext Ext(E,Ct);
+     SE2Ext Ext(SE2Base::Identity(),E,Ct);
      Ext.draw(true, StyleProperties(Color::red()));
   }
 
@@ -39,7 +39,7 @@ int main() {
 
      SE2Base M(Interval(-0.3,0.3), Interval(-0.4,0.2), Interval(-0.9,1.5));
  
-     SE2Ext Ext(M,C);
+     SE2Ext Ext(C,M,SE2Base::Identity());
 
      Ext.draw(true,StyleProperties(Color::blue()));
   }
@@ -49,7 +49,7 @@ int main() {
 
      SE2Base M(Interval(-1.0,1.0), Interval(-1.0,1.0), Interval(0.0,0.0));
  
-     SE2Ext Ext(M,C);
+     SE2Ext Ext(SE2Base::Identity(),M,C);
 
 
 //     (M*C).draw();

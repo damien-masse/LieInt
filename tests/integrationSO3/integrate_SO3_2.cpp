@@ -17,11 +17,11 @@ using namespace codac2;
 
 int main() { 
 
-   ScalarVar t;
+   ScalarVar &t = lie_time;
 
    {
 
-   AnalyticFunction f({t}, vec(cos(t)+Interval(-0.005,0.005),ScalarExpr(0.5)+Interval(-0.005,0.005),sin(t)+Interval(-0.005,0.005)));
+   FuncTAnalytic f(vec(cos(t)+Interval(-0.005,0.005),ScalarExpr(0.5)+Interval(-0.005,0.005),sin(t)+Interval(-0.005,0.005)));
    TimeTube<std::vector<IntervalVector>> PT = buildPolynomialTube(f,1,Interval(0.0,10.0), 2000);
 
 //   SO3Integrator::maxTaylor=10;
@@ -39,7 +39,7 @@ int main() {
 
    {
 
-   AnalyticFunction f({t}, vec(cos(t),ScalarExpr(0.5),sin(t)));
+   FuncTAnalytic f(vec(cos(t),ScalarExpr(0.5),sin(t)));
    TimeTube<std::vector<IntervalVector>> PT = buildPolynomialTube(f,1,Interval(0.0,10.0), 2000);
 
 //   SO3Integrator::maxTaylor=10;

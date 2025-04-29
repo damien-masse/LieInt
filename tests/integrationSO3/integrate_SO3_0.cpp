@@ -20,9 +20,9 @@ int main() {
    Figure3D f3D("test_intTFunc_3");
 
    f3D.draw_axes(2.0);
-   ScalarVar t;
+//   ScalarVar &t = lie_time;  // unused
 
-   AnalyticFunction f({t}, vec(ScalarExpr(0.0),ScalarExpr(Interval(0.9,1.0)),ScalarExpr(0.0)));
+   FuncTAnalytic f(vec(ScalarExpr(0.0),ScalarExpr(Interval(0.9,1.0)),ScalarExpr(0.0)));
    TimeTube<IntervalVector> T = buildRegularTube(f,Interval(0.0,10.0),3000);
 
    TimeTube<SO3Ext> TRes = 

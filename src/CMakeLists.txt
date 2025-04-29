@@ -5,6 +5,7 @@
 set(SRCS 
    intExp.cpp
    lieGroup.cpp
+   funcLie.cpp
    lieSE2.cpp
    lieSO3.cpp
    intTFunc.cpp)
